@@ -35,22 +35,22 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-        { id: user.id, username: user.username, email: user.email, role: user.role },
+        { id: user.id, username: user.username, name: user.name || user.username, email: user.email, role: user.role },
         JWT_SECRET,
         { expiresIn: "24h" }
     );
 
     return new ApiResponse(200, {
         token,
-        user: { id: user.id, username: user.username, email: user.email, role: user.role },
+        user: { id: user.id, username: user.username, name: user.name || user.username, email: user.email, role: user.role },
     }, "Login successful").send(res);
 });
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-    const { username, password, email, role } = req.body;
+    const { username, name, password, email, role } = req.body;
 
-    if (!username || !password) {
-        throw new ApiErrorResponse(400, null, "Username and password are required");
+    if (!username || !password || !name) {
+        throw new ApiErrorResponse(400, null, "Username, name, and password are required");
     }
 
     const [existingUsers] = (await pool.query(
@@ -68,12 +68,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     const userRole = role || "user";
 
     const [result] = (await pool.query(
-        "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)",
-        [username, hashedPassword, userEmail, userRole]
+        "INSERT INTO users (username, name, password, email, role) VALUES (?, ?, ?, ?, ?)",
+        [username, name, hashedPassword, userEmail, userRole]
     )) as [any, any];
 
     return new ApiResponse(201, {
-        user: { id: result.insertId, username, email: userEmail, role: userRole },
+        user: { id: result.insertId, username, name, email: userEmail, role: userRole },
     }, "User registered successfully").send(res);
 });
 
@@ -84,17 +84,17 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
 
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
     const [users] = (await pool.query(
-        "SELECT id, username, email, role, created_at, updated_at FROM users"
+        "SELECT id, username, name, email, role, created_at, updated_at FROM users"
     )) as [any[], any];
     return new ApiResponse(200, users, "Users retrieved successfully").send(res);
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { username, email, role } = req.body;
+    const { username, name, email, role } = req.body;
 
-    if (!username) {
-        throw new ApiErrorResponse(400, null, "Username is required");
+    if (!username || !name) {
+        throw new ApiErrorResponse(400, null, "Username and name are required");
     }
 
     const [existingUsers] = (await pool.query(
@@ -107,13 +107,14 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     }
 
     await pool.query(
-        "UPDATE users SET username = ?, email = ?, role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        [username, email || null, role || "user", id]
+        "UPDATE users SET username = ?, name = ?, email = ?, role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [username, name, email || null, role || "user", id]
     );
 
     return new ApiResponse(200, {
         id: Number(id),
         username,
+        name,
         email: email || null,
         role: role || "user"
     }, "User updated successfully").send(res);
@@ -155,6 +156,40 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     if (result.affectedRows === 0) {
         throw new ApiErrorResponse(404, null, "User not found");
     }
+
+    return new ApiResponse(200, null, "Password changed successfully").send(res);
+});
+
+export const changeOwnPassword = asyncHandler(async (req: Request, res: Response) => {
+    const customReq = req as CustomRequest;
+    if (!customReq.user) {
+        throw new ApiErrorResponse(401, null, "Unauthorized");
+    }
+    const id = customReq.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+        throw new ApiErrorResponse(400, null, "Current password and a new password of at least 6 characters are required");
+    }
+
+    const [users] = (await pool.query("SELECT * FROM users WHERE id = ?", [id])) as [any[], any];
+    if (users.length === 0) {
+        throw new ApiErrorResponse(404, null, "User not found");
+    }
+    const user = users[0];
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+        throw new ApiErrorResponse(400, null, "Incorrect current password");
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await pool.query(
+        "UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [hashedPassword, id]
+    );
 
     return new ApiResponse(200, null, "Password changed successfully").send(res);
 });

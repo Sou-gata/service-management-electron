@@ -1,5 +1,5 @@
 import { Database } from "node-sqlite3-wasm";
-import bcrypt from "bcryptjs";
+import { applyUpdates } from "./updates.js";
 
 export function initializeDatabase(database: Database): void {
     // users
@@ -7,6 +7,7 @@ export function initializeDatabase(database: Database): void {
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL DEFAULT '',
             password TEXT NOT NULL,
             email TEXT UNIQUE,
             role TEXT DEFAULT 'user',
@@ -41,37 +42,6 @@ export function initializeDatabase(database: Database): void {
         )
     `);
 
-    try {
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN product_image TEXT"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN estimated_delivery_date TEXT"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN estimated_cost REAL"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN dispatch_date TEXT"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN servicing_company_id INTEGER"
-        );
-        database.run("ALTER TABLE service_requests ADD COLUMN challan_no TEXT");
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN courier_details TEXT"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN is_sent_for_servicing INTEGER DEFAULT 0"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN delivery_date TEXT"
-        );
-        database.run(
-            "ALTER TABLE service_requests ADD COLUMN is_warranty INTEGER DEFAULT 0"
-        );
-    } catch (error) {}
-
     // service_request_items
     database.run(`
         CREATE TABLE IF NOT EXISTS service_request_items (
@@ -86,24 +56,6 @@ export function initializeDatabase(database: Database): void {
             FOREIGN KEY (service_request_id) REFERENCES service_requests(id) ON DELETE CASCADE
         )
     `);
-
-    try {
-        database.run(
-            "ALTER TABLE service_request_items ADD COLUMN sent_for_servicing INTEGER DEFAULT 0"
-        );
-    } catch (error) {}
-
-    try {
-        database.run(
-            "ALTER TABLE service_request_items ADD COLUMN servicing_problem_description TEXT"
-        );
-    } catch (error) {}
-
-    try {
-        database.run(
-            "ALTER TABLE service_request_items ADD COLUMN is_warranty INTEGER DEFAULT 0"
-        );
-    } catch (error) {}
 
     // device_types
     database.run(`
@@ -136,12 +88,6 @@ export function initializeDatabase(database: Database): void {
         )
     `);
 
-    try {
-        database.run(
-            "ALTER TABLE companies ADD COLUMN status TEXT DEFAULT 'active'"
-        );
-    } catch (error) {}
-
     // servicings
     database.run(`
         CREATE TABLE IF NOT EXISTS servicings (
@@ -159,74 +105,6 @@ export function initializeDatabase(database: Database): void {
         )
     `);
 
-    // ── Seed default device types ───────────────────────────────────────────
-    const dtCount =
-        (database.get("SELECT COUNT(*) as count FROM device_types") as any)
-            ?.count ?? 0;
-    if (dtCount === 0) {
-        const defaultTypes = [
-            "Laptop",
-            "Desktop",
-            "All-in-One",
-            "MacBook",
-            "iMac",
-            "Tablet",
-            "Other",
-        ];
-        for (const type of defaultTypes) {
-            database.run(
-                "INSERT OR IGNORE INTO device_types (name) VALUES (?)",
-                [type]
-            );
-        }
-    }
-
-    const accCount =
-        (database.get("SELECT COUNT(*) as count FROM accessories") as any)
-            ?.count ?? 0;
-    if (accCount === 0) {
-        const defaultAccessories = [
-            "Charger",
-            "Laptop Bag",
-            "Mouse",
-            "Power Cable",
-            "Battery",
-            "HDMI Cable",
-            "Keyboard",
-        ];
-        for (const acc of defaultAccessories) {
-            database.run(
-                "INSERT OR IGNORE INTO accessories (name) VALUES (?)",
-                [acc]
-            );
-        }
-    }
-
-    const userCount =
-        (database.get("SELECT COUNT(*) as count FROM users") as any)?.count ??
-        0;
-    if (userCount === 0) {
-        const salt = bcrypt.genSaltSync(10);
-        const hashedPassword = bcrypt.hashSync("12345678", salt);
-        database.run(
-            "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)",
-            ["admin", hashedPassword, "admin@example.com", "admin"]
-        );
-    }
-
-    // Cleanup/Update existing servicings records that are completed/delivered/repaired
-    try {
-        database.run(`
-            UPDATE servicings 
-            SET status = 'Completed', updated_at = CURRENT_TIMESTAMP 
-            WHERE status = 'Servicing' AND service_request_id IN (
-                SELECT id FROM service_requests WHERE status IN ('Completed', 'Delivered', 'Repaired', 'Unrepairable')
-            )
-        `);
-    } catch (error) {
-        console.error(
-            "Failed to run database cleanup for completed servicings:",
-            error
-        );
-    }
+    // Run table alterations, seeding, and update queries
+    applyUpdates(database);
 }

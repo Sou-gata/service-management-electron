@@ -8,7 +8,6 @@ import {
     Package,
     Clock,
     Wrench,
-    AlertCircle,
     FileText,
     TrendingUp,
     Cpu,
@@ -37,8 +36,7 @@ interface DeviceTypeStat {
 interface DashboardStats {
     total: number;
     received: number;
-    diagnosing: number;
-    in_progress: number;
+    servicing: number;
     completed: number;
     delivered: number;
     totalRevenue?: number;
@@ -85,11 +83,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const Home: React.FC = () => {
+    const [range, setRange] = useState<string>("all");
     const [stats, setStats] = useState<DashboardStats>({
         total: 0,
         received: 0,
-        diagnosing: 0,
-        in_progress: 0,
+        servicing: 0,
         completed: 0,
         delivered: 0,
         totalRevenue: 0,
@@ -106,9 +104,12 @@ const Home: React.FC = () => {
         const fetchDashboardData = async () => {
             setLoading(true);
             try {
-                // Fetch stats
+                // Fetch stats with range
                 const statsResponse = await apiService.get(
-                    "/api/v1/service-requests/stats"
+                    "/api/v1/service-requests/stats",
+                    {
+                        params: { range },
+                    }
                 );
                 setStats(statsResponse.data || statsResponse);
 
@@ -135,16 +136,14 @@ const Home: React.FC = () => {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [range]);
 
     const getStatusStyle = (status: string) => {
         switch (status) {
             case "Received":
                 return "bg-blue-500/10 text-blue-500 border border-blue-500/20";
-            case "Diagnosing":
-                return "bg-amber-500/10 text-amber-500 border border-amber-500/20";
-            case "In Progress":
-                return "bg-purple-500/10 text-purple-500 border border-purple-500/20";
+            case "Servicing":
+                return "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20";
             case "Completed":
                 return "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20";
             case "Delivered":
@@ -174,22 +173,13 @@ const Home: React.FC = () => {
             textColor: "text-blue-600 dark:text-blue-400",
         },
         {
-            title: "Diagnosing",
-            value: stats.diagnosing,
-            description: "Under active checkup",
-            icon: <AlertCircle className="h-5 w-5 text-amber-500" />,
+            title: "In Servicing",
+            value: stats.servicing,
+            description: "Active/external service",
+            icon: <Wrench className="h-5 w-5 text-cyan-500" />,
             gradient:
-                "from-amber-500/5 to-orange-500/5 border-amber-500/10 dark:from-amber-500/10 dark:to-orange-500/10",
-            textColor: "text-amber-600 dark:text-amber-400",
-        },
-        {
-            title: "In Repair",
-            value: stats.in_progress,
-            description: "Hardware/OS repair in progress",
-            icon: <Wrench className="h-5 w-5 text-purple-500" />,
-            gradient:
-                "from-purple-500/5 to-pink-500/5 border-purple-500/10 dark:from-purple-500/10 dark:to-pink-500/10",
-            textColor: "text-purple-600 dark:text-purple-400",
+                "from-cyan-500/5 to-sky-500/5 border-cyan-500/10 dark:from-cyan-500/10 dark:to-sky-500/10",
+            textColor: "text-cyan-600 dark:text-cyan-400",
         },
         {
             title: "Completed",
@@ -213,6 +203,38 @@ const Home: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            {/* Dashboard Header & Range Selector */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/40">
+                <div>
+                    <h1 className="text-xl font-bold tracking-tight text-foreground">
+                        Service Center Dashboard
+                    </h1>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Overview of service requests, financial metrics, and
+                        performance.
+                    </p>
+                </div>
+                <div className="flex items-center gap-1 p-1 bg-card/60 border border-border rounded-xl backdrop-blur-md self-start md:self-auto shadow-sm">
+                    {[
+                        { id: "all", label: "All Time" },
+                        { id: "today", label: "Today" },
+                        { id: "7days", label: "Last 7 Days" },
+                        { id: "30days", label: "Last 30 Days" },
+                    ].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setRange(item.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                range === item.id
+                                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/10"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                            }`}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
             {/* Financial Summary */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <motion.div
@@ -310,7 +332,7 @@ const Home: React.FC = () => {
             </section>
 
             {/* Analytics grid widgets */}
-            <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {statCards.map((card, index) => (
                     <motion.div
                         key={index}

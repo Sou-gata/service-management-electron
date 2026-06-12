@@ -190,17 +190,17 @@ export const createServiceRequest = asyncHandler(
                 if (Array.isArray(dev.items) && dev.items.length > 0) {
                     for (const item of dev.items) {
                         if (item.item_name && item.item_name.trim() !== "") {
-                             await connection.query(
-                                 `INSERT INTO service_request_items (service_request_id, item_name, item_description, is_warranty) VALUES (?, ?, ?, ?)`,
-                                 [
-                                     serviceRequestId,
-                                     item.item_name.trim(),
-                                     item.item_description
-                                         ? item.item_description.trim()
-                                         : null,
-                                     item.is_warranty ? 1 : 0,
-                                 ]
-                             );
+                            await connection.query(
+                                `INSERT INTO service_request_items (service_request_id, item_name, item_description, is_warranty) VALUES (?, ?, ?, ?)`,
+                                [
+                                    serviceRequestId,
+                                    item.item_name.trim(),
+                                    item.item_description
+                                        ? item.item_description.trim()
+                                        : null,
+                                    item.is_warranty ? 1 : 0,
+                                ]
+                            );
                         }
                     }
                 }
@@ -520,22 +520,27 @@ export const updateServiceRequest = asyncHandler(
             if (Array.isArray(items) && items.length > 0) {
                 for (const item of items) {
                     if (item.item_name && item.item_name.trim() !== "") {
-                         await connection.query(
-                             `INSERT INTO service_request_items (service_request_id, item_name, item_description, is_warranty) VALUES (?, ?, ?, ?)`,
-                             [
-                                 id,
-                                 item.item_name.trim(),
-                                 item.item_description
-                                     ? item.item_description.trim()
-                                     : null,
-                                 item.is_warranty ? 1 : 0,
-                             ]
-                         );
+                        await connection.query(
+                            `INSERT INTO service_request_items (service_request_id, item_name, item_description, is_warranty) VALUES (?, ?, ?, ?)`,
+                            [
+                                id,
+                                item.item_name.trim(),
+                                item.item_description
+                                    ? item.item_description.trim()
+                                    : null,
+                                item.is_warranty ? 1 : 0,
+                            ]
+                        );
                     }
                 }
             }
 
-            if (status && ["Completed", "Repaired", "Unrepairable", "Delivered"].includes(status.trim())) {
+            if (
+                status &&
+                ["Completed", "Repaired", "Unrepairable", "Delivered"].includes(
+                    status.trim()
+                )
+            ) {
                 await connection.query(
                     `UPDATE servicings SET status = 'Completed', updated_at = CURRENT_TIMESTAMP 
                      WHERE service_request_id = ? AND status = 'Servicing'`,
@@ -635,7 +640,11 @@ export const updateServiceRequestStatus = asyncHandler(
             throw new ApiErrorResponse(404, null, "Service request not found.");
         }
 
-        if (["Completed", "Repaired", "Unrepairable", "Delivered"].includes(status.trim())) {
+        if (
+            ["Completed", "Repaired", "Unrepairable", "Delivered"].includes(
+                status.trim()
+            )
+        ) {
             await pool.query(
                 `UPDATE servicings SET status = 'Completed', updated_at = CURRENT_TIMESTAMP 
                  WHERE service_request_id = ? AND status = 'Servicing'`,
@@ -677,22 +686,39 @@ export const deleteServiceRequest = asyncHandler(
 
 export const getServiceRequestStats = asyncHandler(
     async (req: Request, res: Response) => {
+        const range = (req.query.range as string) || "all";
+        let whereClause = "";
+        let deliveredWhereClause = "WHERE status = 'Delivered'";
+
+        if (range === "today") {
+            whereClause = "WHERE created_at >= date('now', 'start of day')";
+            deliveredWhereClause =
+                "WHERE status = 'Delivered' AND created_at >= date('now', 'start of day')";
+        } else if (range === "7days") {
+            whereClause = "WHERE created_at >= date('now', '-7 days')";
+            deliveredWhereClause =
+                "WHERE status = 'Delivered' AND created_at >= date('now', '-7 days')";
+        } else if (range === "30days") {
+            whereClause = "WHERE created_at >= date('now', '-30 days')";
+            deliveredWhereClause =
+                "WHERE status = 'Delivered' AND created_at >= date('now', '-30 days')";
+        }
+
         const [rows] = (await pool.query(`
             SELECT 
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'Received' THEN 1 ELSE 0 END) as received,
-                SUM(CASE WHEN status = 'Diagnosing' THEN 1 ELSE 0 END) as diagnosing,
-                SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
+                SUM(CASE WHEN status = 'Servicing' THEN 1 ELSE 0 END) as servicing,
                 SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed,
                 SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) as delivered
             FROM service_requests
+            ${whereClause}
         `)) as [any[], any];
 
         const stats = rows[0] || {
             total: 0,
             received: 0,
-            diagnosing: 0,
-            in_progress: 0,
+            servicing: 0,
             completed: 0,
             delivered: 0,
         };
@@ -700,7 +726,7 @@ export const getServiceRequestStats = asyncHandler(
         const [deliveredRows] = (await pool.query(`
             SELECT cost, new_parts, is_solved
             FROM service_requests
-            WHERE status = 'Delivered'
+            ${deliveredWhereClause}
         `)) as [any[], any];
 
         let totalLabor = 0;
@@ -737,6 +763,7 @@ export const getServiceRequestStats = asyncHandler(
         const [deviceTypeRows] = (await pool.query(`
             SELECT device_type, COUNT(*) as count
             FROM service_requests
+            ${whereClause}
             GROUP BY device_type
             ORDER BY count DESC
         `)) as [any[], any];
@@ -751,8 +778,7 @@ export const getServiceRequestStats = asyncHandler(
             {
                 total: Number(stats.total || 0),
                 received: Number(stats.received || 0),
-                diagnosing: Number(stats.diagnosing || 0),
-                in_progress: Number(stats.in_progress || 0),
+                servicing: Number(stats.servicing || 0),
                 completed: Number(stats.completed || 0),
                 delivered: Number(stats.delivered || 0),
                 totalRevenue: totalLabor + totalParts,
@@ -881,53 +907,66 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     ).send(res);
 });
 
-export const sendForServicing = asyncHandler(async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id as string);
-    if (isNaN(id)) {
-        throw new ApiErrorResponse(400, null, "Invalid service request ID.");
-    }
-
-    const {
-        dispatch_date,
-        servicing_company_id,
-        challan_no,
-        courier_details,
-        items,
-    } = req.body;
-
-    if (!dispatch_date) {
-        throw new ApiErrorResponse(400, null, "Dispatch date is required.");
-    }
-    if (!servicing_company_id) {
-        throw new ApiErrorResponse(400, null, "Company selection is required.");
-    }
-
-    const connection = await pool.getConnection();
-    try {
-        await connection.beginTransaction();
-
-        const [existing] = (await connection.query(
-            `SELECT id FROM service_requests WHERE id = ?`,
-            [id]
-        )) as [any[], any];
-        if (existing.length === 0) {
-            throw new ApiErrorResponse(404, null, "Service request not found.");
+export const sendForServicing = asyncHandler(
+    async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id as string);
+        if (isNaN(id)) {
+            throw new ApiErrorResponse(
+                400,
+                null,
+                "Invalid service request ID."
+            );
         }
 
-        await connection.query(
-            `INSERT INTO servicings (service_request_id, dispatch_date, servicing_company_id, challan_no, courier_details, status)
-             VALUES (?, ?, ?, ?, ?, 'Servicing')`,
-            [
-                id,
-                dispatch_date,
-                servicing_company_id,
-                challan_no || null,
-                courier_details || null,
-            ]
-        );
+        const {
+            dispatch_date,
+            servicing_company_id,
+            challan_no,
+            courier_details,
+            items,
+        } = req.body;
 
-        await connection.query(
-            `UPDATE service_requests SET 
+        if (!dispatch_date) {
+            throw new ApiErrorResponse(400, null, "Dispatch date is required.");
+        }
+        if (!servicing_company_id) {
+            throw new ApiErrorResponse(
+                400,
+                null,
+                "Company selection is required."
+            );
+        }
+
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [existing] = (await connection.query(
+                `SELECT id FROM service_requests WHERE id = ?`,
+                [id]
+            )) as [any[], any];
+            if (existing.length === 0) {
+                throw new ApiErrorResponse(
+                    404,
+                    null,
+                    "Service request not found."
+                );
+            }
+
+            await connection.query(
+                `INSERT INTO servicings (service_request_id, dispatch_date, servicing_company_id, challan_no, courier_details, status)
+             VALUES (?, ?, ?, ?, ?, 'Servicing')`,
+                [
+                    id,
+                    dispatch_date,
+                    servicing_company_id,
+                    challan_no || null,
+                    courier_details || null,
+                ]
+            );
+
+            await connection.query(
+                `UPDATE service_requests SET 
                 status = 'Servicing', 
                 dispatch_date = ?, 
                 servicing_company_id = ?, 
@@ -936,49 +975,57 @@ export const sendForServicing = asyncHandler(async (req: Request, res: Response)
                 is_sent_for_servicing = 1,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?`,
-            [
-                dispatch_date,
-                servicing_company_id,
-                challan_no || null,
-                courier_details || null,
-                id,
-            ]
-        );
+                [
+                    dispatch_date,
+                    servicing_company_id,
+                    challan_no || null,
+                    courier_details || null,
+                    id,
+                ]
+            );
 
-        if (Array.isArray(items) && items.length > 0) {
-            for (const item of items) {
-                await connection.query(
-                    `UPDATE service_request_items SET 
+            if (Array.isArray(items) && items.length > 0) {
+                for (const item of items) {
+                    await connection.query(
+                        `UPDATE service_request_items SET 
                         sent_for_servicing = ?, 
                         servicing_problem_description = ? 
                     WHERE id = ? AND service_request_id = ?`,
-                    [
-                        item.sent_for_servicing ? 1 : 0,
-                        item.servicing_problem_description || null,
-                        item.id,
-                        id,
-                    ]
-                );
+                        [
+                            item.sent_for_servicing ? 1 : 0,
+                            item.servicing_problem_description || null,
+                            item.id,
+                            id,
+                        ]
+                    );
+                }
             }
-        }
 
-        await connection.commit();
-        return new ApiResponse(200, null, "Sent for servicing successfully").send(res);
-    } catch (error: any) {
-        await connection.rollback();
-        throw new ApiErrorResponse(
-            500,
-            null,
-            "Failed to send for servicing: " + error.message
-        );
-    } finally {
-        connection.release();
+            await connection.commit();
+            return new ApiResponse(
+                200,
+                null,
+                "Sent for servicing successfully"
+            ).send(res);
+        } catch (error: any) {
+            await connection.rollback();
+            throw new ApiErrorResponse(
+                500,
+                null,
+                "Failed to send for servicing: " + error.message
+            );
+        } finally {
+            connection.release();
+        }
     }
-});
+);
 
 export const getCustomerByMobile = asyncHandler(
     async (req: Request, res: Response) => {
-        const mobile = typeof req.params.mobile === "string" ? req.params.mobile.trim() : "";
+        const mobile =
+            typeof req.params.mobile === "string"
+                ? req.params.mobile.trim()
+                : "";
         if (!mobile) {
             throw new ApiErrorResponse(400, null, "Mobile number is required.");
         }
@@ -1007,4 +1054,3 @@ export const getCustomerByMobile = asyncHandler(
         ).send(res);
     }
 );
-

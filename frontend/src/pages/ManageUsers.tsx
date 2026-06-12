@@ -11,7 +11,6 @@ import {
     User,
     UserPlus,
     Mail,
-    Check,
 } from "lucide-react";
 import apiService from "../utils/apiService";
 import toaster from "../utils/toaster";
@@ -20,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface UserItem {
     id: number;
     username: string;
+    name: string;
     email: string | null;
     role: string;
     created_at?: string;
@@ -48,6 +48,7 @@ const ManageUsers: React.FC = () => {
 
     // Form inputs state
     const [usernameInput, setUsernameInput] = useState("");
+    const [nameInput, setNameInput] = useState("");
     const [emailInput, setEmailInput] = useState("");
     const [roleInput, setRoleInput] = useState("user");
     const [passwordInput, setPasswordInput] = useState("");
@@ -76,11 +77,13 @@ const ManageUsers: React.FC = () => {
         setActiveUser(userItem || null);
         if (mode === "edit" && userItem) {
             setUsernameInput(userItem.username);
+            setNameInput(userItem.name || "");
             setEmailInput(userItem.email || "");
             setRoleInput(userItem.role);
             setPasswordInput(""); // Not used in edit mode
         } else {
             setUsernameInput("");
+            setNameInput("");
             setEmailInput("");
             setRoleInput("user");
             setPasswordInput("");
@@ -90,12 +93,20 @@ const ManageUsers: React.FC = () => {
 
     const handleAddEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!nameInput.trim()) {
+            toaster("error", "Name cannot be empty");
+            return;
+        }
+
         if (!usernameInput.trim()) {
             toaster("error", "Username cannot be empty");
             return;
         }
 
-        if (modalMode === "add" && (!passwordInput || passwordInput.length < 6)) {
+        if (
+            modalMode === "add" &&
+            (!passwordInput || passwordInput.length < 6)
+        ) {
             toaster("error", "Password must be at least 6 characters long");
             return;
         }
@@ -103,29 +114,31 @@ const ManageUsers: React.FC = () => {
         setIsSubmitting(true);
         try {
             if (modalMode === "add") {
-                const res = await apiService.post("/api/v1/users/register", {
+                await apiService.post("/api/v1/users/register", {
                     username: usernameInput,
+                    name: nameInput.trim(),
                     password: passwordInput,
                     email: emailInput.trim() || null,
                     role: roleInput,
                 });
                 toaster("success", "User registered successfully");
-                const newUser = res.data?.user || res.user || res;
                 // Fetch users again to ensure we get all database defaults / format
                 await fetchUsers();
             } else if (modalMode === "edit" && activeUser) {
-                const res = await apiService.put(`/api/v1/users/${activeUser.id}`, {
+                await apiService.put(`/api/v1/users/${activeUser.id}`, {
                     username: usernameInput,
+                    name: nameInput.trim(),
                     email: emailInput.trim() || null,
                     role: roleInput,
                 });
                 toaster("success", "User updated successfully");
-                
+
                 // If the updated user is the currently logged in admin, update localStorage
                 if (currentUser && currentUser.id === activeUser.id) {
                     const updatedUser = {
                         ...currentUser,
                         username: usernameInput,
+                        name: nameInput.trim(),
                         email: emailInput.trim() || null,
                         role: roleInput,
                     };
@@ -133,17 +146,31 @@ const ManageUsers: React.FC = () => {
                 }
 
                 setUsers((prev) =>
-                    prev.map((u) => (u.id === activeUser.id ? { ...u, username: usernameInput, email: emailInput.trim() || null, role: roleInput } : u))
+                    prev.map((u) =>
+                        u.id === activeUser.id
+                            ? {
+                                  ...u,
+                                  username: usernameInput,
+                                  name: nameInput.trim(),
+                                  email: emailInput.trim() || null,
+                                  role: roleInput,
+                              }
+                            : u
+                    )
                 );
             }
             setIsAddEditModalOpen(false);
             setUsernameInput("");
+            setNameInput("");
             setEmailInput("");
             setRoleInput("user");
             setPasswordInput("");
             setActiveUser(null);
         } catch (error: any) {
-            toaster("error", error.response?.data?.message || "Operation failed.");
+            toaster(
+                "error",
+                error.response?.data?.message || "Operation failed."
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -175,7 +202,10 @@ const ManageUsers: React.FC = () => {
             setPasswordInput("");
             setActiveUser(null);
         } catch (error: any) {
-            toaster("error", error.response?.data?.message || "Failed to change password.");
+            toaster(
+                "error",
+                error.response?.data?.message || "Failed to change password."
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -198,10 +228,16 @@ const ManageUsers: React.FC = () => {
 
         try {
             await apiService.delete(`/api/v1/users/${userItem.id}`);
-            toaster("success", `User "${userItem.username}" deleted successfully.`);
+            toaster(
+                "success",
+                `User "${userItem.username}" deleted successfully.`
+            );
             setUsers((prev) => prev.filter((u) => u.id !== userItem.id));
         } catch (error: any) {
-            toaster("error", error.response?.data?.message || "Failed to delete user.");
+            toaster(
+                "error",
+                error.response?.data?.message || "Failed to delete user."
+            );
         }
     };
 
@@ -215,7 +251,8 @@ const ManageUsers: React.FC = () => {
                         <span>User Management</span>
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Register, update details, change passwords, and manage system access permissions.
+                        Register, update details, change passwords, and manage
+                        system access permissions.
                     </p>
                 </div>
                 <button
@@ -242,85 +279,143 @@ const ManageUsers: React.FC = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-accent/10 border-b border-border/60">
-                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Username</th>
-                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</th>
-                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Role</th>
-                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Registered At</th>
-                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
+                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                        Name & Username
+                                    </th>
+                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                        Email Address
+                                    </th>
+                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                        Role
+                                    </th>
+                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                        Registered At
+                                    </th>
+                                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/60">
                                 {users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-8 text-center text-sm text-muted-foreground italic">
+                                        <td
+                                            colSpan={5}
+                                            className="p-8 text-center text-sm text-muted-foreground italic"
+                                        >
                                             No user accounts registered.
                                         </td>
                                     </tr>
                                 ) : (
                                     users.map((user) => (
-                                        <tr key={user.id} className="hover:bg-accent/5 transition-colors">
+                                        <tr
+                                            key={user.id}
+                                            className="hover:bg-accent/5 transition-colors"
+                                        >
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2.5">
                                                     <div className="h-8 w-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                                         <User className="h-4 w-4" />
                                                     </div>
                                                     <div>
-                                                        <span className="text-sm font-semibold text-foreground">
-                                                            {user.username}
+                                                        <span className="text-sm font-semibold text-foreground block">
+                                                            {user.name ||
+                                                                user.username}
                                                         </span>
-                                                        {currentUser?.id === user.id && (
-                                                            <span className="ml-2 text-[9px] bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                                                                You
-                                                            </span>
-                                                        )}
+                                                        <span className="text-xs text-muted-foreground block">
+                                                            @{user.username}
+                                                            {currentUser?.id ===
+                                                                user.id && (
+                                                                <span className="ml-2 text-[9px] bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider inline-block">
+                                                                    You
+                                                                </span>
+                                                            )}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm text-muted-foreground">
-                                                {user.email || <span className="italic opacity-60">Not set</span>}
+                                                {user.email || (
+                                                    <span className="italic opacity-60">
+                                                        Not set
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                    user.role === "admin"
-                                                        ? "bg-rose-500/10 text-rose-600 border border-rose-500/10"
-                                                        : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/10"
-                                                }`}>
+                                                <span
+                                                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                                        user.role === "admin"
+                                                            ? "bg-rose-500/10 text-rose-600 border border-rose-500/10"
+                                                            : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/10"
+                                                    }`}
+                                                >
                                                     <Shield className="h-3 w-3" />
-                                                    <span className="uppercase tracking-wider">{user.role}</span>
+                                                    <span className="uppercase tracking-wider">
+                                                        {user.role}
+                                                    </span>
                                                 </span>
                                             </td>
                                             <td className="p-4 text-sm text-muted-foreground">
-                                                {user.created_at ? new Date(user.created_at).toLocaleDateString(undefined, {
-                                                    year: "numeric",
-                                                    month: "short",
-                                                    day: "numeric",
-                                                }) : "N/A"}
+                                                {user.created_at
+                                                    ? new Date(
+                                                          user.created_at
+                                                      ).toLocaleDateString(
+                                                          undefined,
+                                                          {
+                                                              year: "numeric",
+                                                              month: "short",
+                                                              day: "numeric",
+                                                          }
+                                                      )
+                                                    : "N/A"}
                                             </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <button
-                                                        onClick={() => openAddEditModal("edit", user)}
+                                                        onClick={() =>
+                                                            openAddEditModal(
+                                                                "edit",
+                                                                user
+                                                            )
+                                                        }
                                                         className="p-1.5 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/10 rounded-lg cursor-pointer transition-all"
                                                         title="Edit Details"
                                                     >
                                                         <Edit3 className="h-3.5 w-3.5" />
                                                     </button>
                                                     <button
-                                                        onClick={() => openPasswordModal(user)}
+                                                        onClick={() =>
+                                                            openPasswordModal(
+                                                                user
+                                                            )
+                                                        }
                                                         className="p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10 rounded-lg cursor-pointer transition-all"
                                                         title="Change Password"
                                                     >
                                                         <Key className="h-3.5 w-3.5" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteUser(user)}
-                                                        disabled={currentUser?.id === user.id}
+                                                        onClick={() =>
+                                                            handleDeleteUser(
+                                                                user
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            currentUser?.id ===
+                                                            user.id
+                                                        }
                                                         className={`p-1.5 rounded-lg transition-all ${
-                                                            currentUser?.id === user.id
+                                                            currentUser?.id ===
+                                                            user.id
                                                                 ? "text-muted-foreground/30 cursor-not-allowed"
                                                                 : "text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                                                         }`}
-                                                        title={currentUser?.id === user.id ? "Cannot delete yourself" : "Delete Account"}
+                                                        title={
+                                                            currentUser?.id ===
+                                                            user.id
+                                                                ? "Cannot delete yourself"
+                                                                : "Delete Account"
+                                                        }
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </button>
@@ -356,7 +451,9 @@ const ManageUsers: React.FC = () => {
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                                     <UserPlus className="h-4 w-4 text-indigo-500" />
                                     <span>
-                                        {modalMode === "add" ? "Register New User" : "Edit User Account"}
+                                        {modalMode === "add"
+                                            ? "Register New User"
+                                            : "Edit User Account"}
                                     </span>
                                 </h3>
                                 <button
@@ -366,59 +463,98 @@ const ManageUsers: React.FC = () => {
                                     <X className="h-4 w-4" />
                                 </button>
                             </div>
-                            <form onSubmit={handleAddEditSubmit} className="space-y-4">
+                            <form
+                                onSubmit={handleAddEditSubmit}
+                                className="space-y-4"
+                            >
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                        <User className="h-3 w-3" /> Username
+                                        <User className="h-3 w-3" /> Name{" "}
+                                        <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter full name"
+                                        value={nameInput}
+                                        onChange={(e) =>
+                                            setNameInput(e.target.value)
+                                        }
+                                        className="w-full bg-background/50 border border-input rounded-lg px-3.5 py-2 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                                        required
+                                        autoFocus={
+                                            modalMode === "add" ||
+                                            modalMode === "edit"
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                        <User className="h-3 w-3" /> Username{" "}
+                                        <span className="text-rose-500">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         placeholder="Enter username"
                                         value={usernameInput}
-                                        onChange={(e) => setUsernameInput(e.target.value)}
+                                        onChange={(e) =>
+                                            setUsernameInput(e.target.value)
+                                        }
                                         className="w-full bg-background/50 border border-input rounded-lg px-3.5 py-2 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 transition-all"
                                         required
-                                        autoFocus={modalMode === "add"}
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                        <Mail className="h-3 w-3" /> Email Address
+                                        <Mail className="h-3 w-3" /> Email
+                                        Address
                                     </label>
                                     <input
                                         type="email"
                                         placeholder="e.g., user@example.com"
                                         value={emailInput}
-                                        onChange={(e) => setEmailInput(e.target.value)}
+                                        onChange={(e) =>
+                                            setEmailInput(e.target.value)
+                                        }
                                         className="w-full bg-background/50 border border-input rounded-lg px-3.5 py-2 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 transition-all"
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                        <Shield className="h-3 w-3" /> Access Role
+                                        <Shield className="h-3 w-3" /> Access
+                                        Role
                                     </label>
                                     <select
                                         value={roleInput}
-                                        onChange={(e) => setRoleInput(e.target.value)}
+                                        onChange={(e) =>
+                                            setRoleInput(e.target.value)
+                                        }
                                         className="w-full bg-background/50 border border-input rounded-lg px-3.5 py-2 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 transition-all"
                                     >
-                                        <option value="user">User (Standard Access)</option>
-                                        <option value="admin">Admin (Full Access)</option>
+                                        <option value="user">
+                                            User (Standard Access)
+                                        </option>
+                                        <option value="admin">
+                                            Admin (Full Access)
+                                        </option>
                                     </select>
                                 </div>
 
                                 {modalMode === "add" && (
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                            <Key className="h-3 w-3" /> Initial Password
+                                            <Key className="h-3 w-3" /> Initial
+                                            Password
                                         </label>
                                         <input
                                             type="password"
                                             placeholder="Min. 6 characters"
                                             value={passwordInput}
-                                            onChange={(e) => setPasswordInput(e.target.value)}
+                                            onChange={(e) =>
+                                                setPasswordInput(e.target.value)
+                                            }
                                             className="w-full bg-background/50 border border-input rounded-lg px-3.5 py-2 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 transition-all"
                                             required
                                             minLength={6}
@@ -429,7 +565,9 @@ const ManageUsers: React.FC = () => {
                                 <div className="flex justify-end gap-2.5 pt-2">
                                     <button
                                         type="button"
-                                        onClick={() => setIsAddEditModalOpen(false)}
+                                        onClick={() =>
+                                            setIsAddEditModalOpen(false)
+                                        }
                                         className="px-4 py-2 border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:bg-accent cursor-pointer transition-colors"
                                     >
                                         Cancel
@@ -442,7 +580,11 @@ const ManageUsers: React.FC = () => {
                                         {isSubmitting && (
                                             <Loader2 className="h-3 w-3 animate-spin" />
                                         )}
-                                        <span>{modalMode === "add" ? "Register" : "Save Changes"}</span>
+                                        <span>
+                                            {modalMode === "add"
+                                                ? "Register"
+                                                : "Save Changes"}
+                                        </span>
                                     </button>
                                 </div>
                             </form>
@@ -474,17 +616,28 @@ const ManageUsers: React.FC = () => {
                                     <span>Change Password</span>
                                 </h3>
                                 <button
-                                    onClick={() => setIsPasswordModalOpen(false)}
+                                    onClick={() =>
+                                        setIsPasswordModalOpen(false)
+                                    }
                                     className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
                             </div>
-                            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                            <form
+                                onSubmit={handlePasswordSubmit}
+                                className="space-y-4"
+                            >
                                 <div className="p-3.5 bg-accent/20 border border-border/40 rounded-xl space-y-1">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Target Account</p>
-                                    <p className="text-sm font-bold text-foreground">{activeUser.username}</p>
-                                    <p className="text-[10px] text-muted-foreground capitalize font-medium">{activeUser.role} Account</p>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                        Target Account
+                                    </p>
+                                    <p className="text-sm font-bold text-foreground">
+                                        {activeUser.username}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground capitalize font-medium">
+                                        {activeUser.role} Account
+                                    </p>
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -495,7 +648,9 @@ const ManageUsers: React.FC = () => {
                                         type="password"
                                         placeholder="Min. 6 characters"
                                         value={passwordInput}
-                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        onChange={(e) =>
+                                            setPasswordInput(e.target.value)
+                                        }
                                         className="w-full bg-background/50 border border-input rounded-lg px-3.5 py-2 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 transition-all"
                                         required
                                         minLength={6}
@@ -506,7 +661,9 @@ const ManageUsers: React.FC = () => {
                                 <div className="flex justify-end gap-2.5 pt-2">
                                     <button
                                         type="button"
-                                        onClick={() => setIsPasswordModalOpen(false)}
+                                        onClick={() =>
+                                            setIsPasswordModalOpen(false)
+                                        }
                                         className="px-4 py-2 border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:bg-accent cursor-pointer transition-colors"
                                     >
                                         Cancel

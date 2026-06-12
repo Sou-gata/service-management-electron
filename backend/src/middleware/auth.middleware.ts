@@ -9,6 +9,7 @@ export interface CustomRequest extends Request {
     user?: {
         id: number;
         username: string;
+        name: string;
         email: string | null;
         role: string;
     };
@@ -37,6 +38,7 @@ export function verifyToken(
         req.user = {
             id: decoded.id,
             username: decoded.username,
+            name: decoded.name,
             email: decoded.email,
             role: decoded.role,
         };
