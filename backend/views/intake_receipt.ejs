@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Service Intake Report - SR-<%= ticketId %></title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.4;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Header Styling */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .brand-section h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #4f46e5;
+            letter-spacing: -0.025em;
+            text-transform: uppercase;
+        }
+
+        .brand-section p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .brand-section .meta-date {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+
+        .ticket-section {
+            text-align: right;
+        }
+
+        .ticket-section h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: 0.05em;
+        }
+
+        .ticket-section .ticket-id {
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-top: 2px;
+        }
+
+        .ticket-section .status-badge {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Status Colors */
+        .status-Received { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .status-Diagnosing { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .status-In-Progress { background-color: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+        .status-Completed { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+
+        /* Grid for details */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .details-card {
+            background-color: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .details-card h3 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #4f46e5;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+        }
+
+        .info-group {
+            margin-bottom: 6px;
+        }
+
+        .info-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .info-value {
+            font-size: 13px;
+            font-weight: 500;
+            color: #0f172a;
+            margin-top: 2px;
+            white-space: pre-wrap;
+        }
+
+        .info-value.mono {
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .problem-desc-box {
+            font-size: 12px;
+            color: #334155;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            min-height: 50px;
+            margin-top: 4px;
+            white-space: pre-wrap;
+        }
+
+        /* Checklist Table */
+        .items-section {
+            margin-bottom: 16px;
+        }
+
+        .items-section h3 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #4f46e5;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .items-table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .items-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .items-table td.item-name {
+            font-weight: 600;
+            color: #0f172a;
+            width: 35%;
+        }
+
+        .items-table td.item-desc {
+            color: #475569;
+        }
+
+        .items-table .italic-muted {
+            font-style: italic;
+            color: #94a3b8;
+        }
+
+        /* Agreement & Signatures */
+        .agreement-section {
+            font-size: 10px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 10px;
+            margin-top: 20px;
+            page-break-inside: avoid;
+        }
+
+        .agreement-section p {
+            line-height: 1.4;
+        }
+
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+
+        .signature-line {
+            border-top: 1px solid #0f172a;
+            padding-top: 6px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        /* Footer Metadata */
+        .footer-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            color: #94a3b8;
+            border-top: 1px dotted #e2e8f0;
+            padding-top: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand-section">
+                <h1>RADHA IT SOLUTION & SERVICES</h1>
+                <p>GANGARAMPUR<br>BARABAZAR<br>DAKSHIN DINAJPUR<br>PH - 9332554299<br>EMAIL - radheitsolutionservices@gmail.com</p>
+                <div class="meta-date">Bill Generated: <%= generatedAt %></div>
+            </div>
+            <div class="ticket-section">
+                <h2>INTAKE REPORT</h2>
+                <div class="ticket-id">#SR-<%= ticketId %></div>
+                <span class="status-badge status-<%= statusClass %>"><%= request.status %></span>
+            </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="details-grid">
+            <!-- Customer Card -->
+            <div class="details-card">
+                <h3>Customer Information</h3>
+                <div class="info-group">
+                    <div class="info-label">Name</div>
+                    <div class="info-value"><%= request.customer_name %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Mobile Number</div>
+                    <div class="info-value"><%= request.customer_mobile %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Address</div>
+                    <div class="info-value"><%= request.customer_address %></div>
+                </div>
+            </div>
+
+            <!-- Device Card -->
+            <div class="details-card">
+                <h3>Device Specifications</h3>
+                <div class="info-group">
+                    <div class="info-label">Device Model & Type</div>
+                    <div class="info-value"><%= request.brand_model %> (<%= request.device_type %>)</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Serial Number (S/N)</div>
+                    <div class="info-value mono"><%= request.serial_number || 'N/A' %></div>
+                </div>
+                <div class="info-group" style="display: flex; align-items: center; gap: 6px;">
+                    <div class="info-label" style="margin-bottom: 0;">Has Warranty?</div>
+                    <div class="info-value" style="margin-top: 0;"><%= (request.is_warranty === 1 || request.is_warranty === true) ? 'Yes' : 'No' %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Problem Description</div>
+                    <div class="problem-desc-box"><%= request.problem_description || 'No specific defect commented.' %></div>
+                </div>
+                <% if (request.estimated_delivery_date || request.estimated_cost) { %>
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; display: flex; gap: 16px;">
+                        <% if (request.estimated_delivery_date) { %>
+                            <div>
+                                <div class="info-label" style="font-size: 8px;">Estimated Delivery Date</div>
+                                <div class="info-value"><%= new Date(request.estimated_delivery_date).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) %></div>
+                            </div>
+                        <% } %>
+                        <% if (request.estimated_cost) { %>
+                            <div>
+                                <div class="info-label" style="font-size: 8px;">Estimated Cost</div>
+                                <div class="info-value" style="font-weight: 700; color: #4f46e5;">₹<%= parseFloat(request.estimated_cost).toFixed(2) %></div>
+                            </div>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Checklist of Items Received -->
+        <div class="items-section">
+            <h3>Checklist of Items Received (<%= request.items ? request.items.length : 0 %>)</h3>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Item Name</th>
+                        <th style="width: 50%;">Specifications / Condition / Serial</th>
+                        <th style="width: 20%; text-align: center;">Warranty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (request.items && request.items.length > 0) { %>
+                        <% request.items.forEach(function(item) { %>
+                            <tr>
+                                <td class="item-name"><%= item.item_name %></td>
+                                <td class="item-desc"><%- item.item_description || '<span class="italic-muted">Verified received</span>' %></td>
+                                <td style="text-align: center; font-weight: bold; color: <%= (item.is_warranty === 1 || item.is_warranty === true) ? '#059669' : '#dc2626' %>;">
+                                    <%= (item.is_warranty === 1 || item.is_warranty === true) ? 'Yes' : 'No' %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="3" class="italic-muted" style="text-align: center; padding: 20px;">
+                                No standalone accessories or chargers registered.
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Agreement Terms -->
+        <div class="agreement-section">
+            <p><strong>Agreement Terms:</strong> By signing below, the customer acknowledges that the items listed above have been physically left with the Service Portal for diagnosis and repair. The customer declares that any existing cosmetic damage, data loss risk, and software/hardware failure is not the liability of the service portal during repair trials. Estimated diagnostic reports will be communicated.</p>
+        </div>
+
+        <!-- Signatures -->
+        <div class="signature-grid">
+            <div class="signature-line">Customer Signature</div>
+            <div class="signature-line">Authorized Receiver Signature</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-meta">
+            <span>Registered by User: <strong><%= registeredBy %></strong></span>
+            <span>Ticket ID: #SR-<%= ticketId %></span>
+        </div>
+    </div>
+</body>
+</html>

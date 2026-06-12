@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= type === 'daily' ? 'Daily' : (type === 'weekly' ? 'Weekly' : 'Monthly') %> Performance Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.5;
+            padding: 20px;
+            font-size: 13px;
+        }
+        
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Header Styling */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .brand-section h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #4f46e5;
+            letter-spacing: -0.025em;
+        }
+        
+        .brand-section p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        
+        .brand-section .meta-date {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+        
+        .type-section {
+            text-align: right;
+        }
+        
+        .type-section h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        
+        .type-section .year-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-top: 2px;
+        }
+        
+        /* Summary Cards Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        
+        .summary-card {
+            background-color: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 8px;
+            padding: 14px 18px;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .summary-card.revenue {
+            border-left-color: #10b981;
+        }
+        
+        .summary-card.rate {
+            border-left-color: #8b5cf6;
+        }
+        
+        .summary-card h4 {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        
+        .summary-card p {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        
+        .summary-card span {
+            font-size: 9px;
+            color: #94a3b8;
+            margin-top: 2px;
+            display: block;
+        }
+        
+        /* Table Styling */
+        .data-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            color: #4f46e5;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .data-table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-align: left;
+            padding: 9px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .data-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+        
+        .data-table tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+        
+        .status-Received { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .status-Diagnosing { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .status-In-Progress { background-color: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+        .status-Completed { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .status-Delivered { background-color: #f4f4f5; color: #71717a; border: 1px solid #e4e4e7; }
+        
+        .data-table tr.total-row td {
+            background-color: #f1f5f9;
+            font-weight: 700;
+            color: #0f172a;
+            border-top: 2px solid #cbd5e1;
+            border-bottom: none;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+        }
+        
+        .badge-solved {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-unsolved {
+            background-color: #ffe4e6;
+            color: #991b1b;
+        }
+        
+        /* Footer */
+        .footer-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            color: #94a3b8;
+            border-top: 1px dotted #e2e8f0;
+            padding-top: 12px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand-section">
+                <h1>RADHA IT SOLUTION & SERVICES</h1>
+                <p>GANGARAMPUR<br>BARABAZAR<br>DAKSHIN DINAJPUR<br>PH - 9332554299<br>EMAIL - radheitsolutionservices@gmail.com</p>
+                <div class="meta-date">Bill Generated: <%= generatedAt %></div>
+            </div>
+            <div class="type-section">
+                <% if (type === 'daily') { %>
+                    <h2>Daily Performance Report</h2>
+                    <div class="year-label">Date: <%= dateStr %></div>
+                <% } else { %>
+                    <h2><%= type === 'weekly' ? 'Weekly' : 'Monthly' %> Performance Report</h2>
+                    <div class="year-label">Year: <%= year %></div>
+                <% } %>
+            </div>
+        </div>
+        
+        <!-- Summary Grid -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h4>Total Intakes</h4>
+                <p><%= totals.totalIntakes %></p>
+                <span><%= type === 'daily' ? 'Registered intakes today' : 'Registered service requests' %></span>
+            </div>
+            <div class="summary-card revenue">
+                <h4>Total Billed Revenue</h4>
+                <p>₹<%= totals.totalNetRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></p>
+                <span>Labor: ₹<%= totals.totalLaborRevenue.toLocaleString('en-IN') %> • Parts: ₹<%= totals.totalPartsCost.toLocaleString('en-IN') %></span>
+            </div>
+            <div class="summary-card rate">
+                <h4>Overall Solved Rate</h4>
+                <p><%= totals.overallSolvedRate %>%</p>
+                <span><%= type === 'daily' ? 'Solved rate today' : 'Solved vs delivered cases' %></span>
+            </div>
+        </div>
+        
+        <!-- Data Table Section -->
+        <div class="data-section">
+            <h3>Report Details</h3>
+            <table class="data-table">
+                <% if (type === 'daily') { %>
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Customer</th>
+                            <th>Device Specification</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-right">Labor Charge</th>
+                            <th class="text-right">Parts Cost</th>
+                            <th class="text-right">Grand Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (periods && periods.length > 0) { %>
+                            <% periods.forEach(function(r) { %>
+                                <tr>
+                                    <td><strong>#SR-<%= String(r.id).padStart(6, '0') %></strong></td>
+                                    <td><%= r.customer_name %></td>
+                                    <td><%= r.brand_model %> (<%= r.device_type %>)</td>
+                                    <td class="text-center">
+                                        <span class="badge status-<%= r.status.replace(/\s+/g, '-') %>">
+                                            <%= r.status %>
+                                        </span>
+                                    </td>
+                                    <td class="text-right">₹<%= r.labor_revenue.toFixed(2) %></td>
+                                    <td class="text-right">₹<%= r.parts_cost.toFixed(2) %></td>
+                                    <td class="text-right"><strong>₹<%= r.net_revenue.toFixed(2) %></strong></td>
+                                </tr>
+                            <% }); %>
+                            
+                            <!-- Total Row -->
+                            <tr class="total-row">
+                                <td colspan="4">TOTAL</td>
+                                <td class="text-right">₹<%= totals.totalLaborRevenue.toFixed(2) %></td>
+                                <td class="text-right">₹<%= totals.totalPartsCost.toFixed(2) %></td>
+                                <td class="text-right">₹<%= totals.totalNetRevenue.toFixed(2) %></td>
+                            </tr>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 24px; color: #94a3b8; font-style: italic;">
+                                    No service requests registered for this date.
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                <% } else { %>
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th class="text-center">Intakes</th>
+                            <th class="text-center">Completed</th>
+                            <th class="text-center">Delivered</th>
+                            <th class="text-center">Solved Rate</th>
+                            <th class="text-right">Labor Revenue</th>
+                            <th class="text-right">Parts Cost</th>
+                            <th class="text-right">Grand Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (periods && periods.length > 0) { %>
+                            <% periods.forEach(function(p) { %>
+                                <% const solvedRate = p.delivered_count > 0 ? Math.round((p.solved_count / p.delivered_count) * 100) : 0; %>
+                                <tr>
+                                    <td><strong><%= p.period %></strong></td>
+                                    <td class="text-center"><%= p.intakes_count %></td>
+                                    <td class="text-center"><%= p.completed_count %></td>
+                                    <td class="text-center"><%= p.delivered_count %></td>
+                                    <td class="text-center">
+                                        <% if (p.delivered_count > 0) { %>
+                                            <span class="badge <%= solvedRate >= 75 ? 'badge-solved' : 'badge-unsolved' %>">
+                                                <%= solvedRate %>%
+                                            </span>
+                                        <% } else { %>
+                                            <span style="color: #94a3b8;">-</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="text-right">₹<%= p.labor_revenue.toFixed(2) %></td>
+                                    <td class="text-right">₹<%= p.parts_cost.toFixed(2) %></td>
+                                    <td class="text-right"><strong>₹<%= p.net_revenue.toFixed(2) %></strong></td>
+                                </tr>
+                            <% }); %>
+                            
+                            <!-- Total Row -->
+                            <tr class="total-row">
+                                <td>TOTAL</td>
+                                <td class="text-center"><%= totals.totalIntakes %></td>
+                                <td class="text-center"><%= totals.totalCompleted %></td>
+                                <td class="text-center"><%= totals.totalDelivered %></td>
+                                <td class="text-center">
+                                    <span class="badge <%= totals.overallSolvedRate >= 75 ? 'badge-solved' : 'badge-unsolved' %>">
+                                        <%= totals.overallSolvedRate %>%
+                                    </span>
+                                </td>
+                                <td class="text-right">₹<%= totals.totalLaborRevenue.toFixed(2) %></td>
+                                <td class="text-right">₹<%= totals.totalPartsCost.toFixed(2) %></td>
+                                <td class="text-right">₹<%= totals.totalNetRevenue.toFixed(2) %></td>
+                            </tr>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 24px; color: #94a3b8; font-style: italic;">
+                                    No service requests registered for this year.
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                <% } %>
+            </table>
+        </div>
+        
+        <!-- Footer Meta -->
+        <div class="footer-meta">
+            <span>Report Category: <%= type.toUpperCase() %></span>
+            <span>Generated from Service Repair Database</span>
+        </div>
+    </div>
+</body>
+</html>

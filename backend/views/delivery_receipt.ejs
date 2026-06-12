@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Service Delivery Receipt - SR-<%= ticketId %></title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.4;
+            padding: 10px;
+            font-size: 12px;
+         }
+
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Premium Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #10b981; /* Emerald border */
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .brand-section h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #047857; /* Dark Emerald */
+            letter-spacing: -0.025em;
+            text-transform: uppercase;
+        }
+
+        .brand-section p {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        .brand-section .meta-date {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .ticket-section {
+            text-align: right;
+        }
+
+        .ticket-section h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.05em;
+        }
+
+        .ticket-section .ticket-id {
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: 700;
+            color: #047857;
+            margin-top: 2px;
+        }
+
+        .ticket-section .status-badge {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+        }
+
+        /* side by side details */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .details-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .details-card.delivery-accent {
+            border-left: 4px solid #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .details-card h3 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 6px;
+        }
+
+        .details-card.delivery-accent h3 {
+            color: #047857;
+            border-bottom-color: #a7f3d0;
+        }
+
+        .info-group {
+            margin-bottom: 6px;
+        }
+
+        .info-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .info-value {
+            font-size: 12px;
+            font-weight: 500;
+            color: #0f172a;
+            margin-top: 1px;
+        }
+
+        .info-value.mono {
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        /* Replaced parts table & accessories returned list */
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+        }
+
+        .returned-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            color: #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .returned-badge {
+            display: inline-block;
+            background-color: #e2e8f0;
+            color: #334155;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .invoice-table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .invoice-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        .invoice-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Financial summary block */
+        .summary-block {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .summary-table {
+            width: 260px;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .summary-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .summary-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-table td.label {
+            color: #64748b;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .summary-table td.value {
+            color: #0f172a;
+            font-weight: 600;
+            text-align: right;
+            width: 40%;
+        }
+
+        .summary-table tr.total-row {
+            background-color: #f0fdf4;
+        }
+
+        .summary-table tr.total-row td {
+            border-top: 2px solid #10b981;
+            padding: 8px;
+        }
+
+        .summary-table tr.total-row td.label {
+            color: #047857;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .summary-table tr.total-row td.value {
+            color: #047857;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        /* Banner for problem solved status */
+        .resolved-banner {
+            background-color: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .unresolved-banner {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Signatures block */
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+
+        .signature-line {
+            border-top: 1px solid #334155;
+            padding-top: 6px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        /* Footer metadata */
+        .footer-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            color: #94a3b8;
+            border-top: 1px dotted #e2e8f0;
+            padding-top: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand-section">
+                <h1>RADHA IT SOLUTION & SERVICES</h1>
+                <p>GANGARAMPUR<br>BARABAZAR<br>DAKSHIN DINAJPUR<br>PH - 9332554299<br>EMAIL - radheitsolutionservices@gmail.com</p>
+                <div class="meta-date">Delivery Date: <%= request.delivery_date ? new Date(request.delivery_date.endsWith("Z") ? request.delivery_date : request.delivery_date.replace(" ", "T") + "Z").toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB") %></div>
+            </div>
+            <div class="ticket-section">
+                <h2>DELIVERY RECEIPT</h2>
+                <div class="ticket-id">#SR-<%= ticketId %></div>
+                <span class="status-badge"><%= request.status %></span>
+            </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="details-grid">
+            <!-- Customer Card -->
+            <div class="details-card">
+                <h3>Customer Information</h3>
+                <div class="info-group">
+                    <div class="info-label">Name</div>
+                    <div class="info-value"><%= request.customer_name %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Mobile Number</div>
+                    <div class="info-value"><%= request.customer_mobile %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Address</div>
+                    <div class="info-value"><%= request.customer_address %></div>
+                </div>
+            </div>
+
+            <!-- Device Card -->
+            <div class="details-card delivery-accent">
+                <h3>Service Summary</h3>
+                <div class="info-group">
+                    <div class="info-label">Device model & type</div>
+                    <div class="info-value"><%= request.brand_model %> (<%= request.device_type %>)</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Serial Number (S/N)</div>
+                    <div class="info-value mono"><%= request.serial_number || 'N/A' %></div>
+                </div>
+                <div class="info-group" style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                    <div class="info-label" style="margin-bottom: 0;">Has Warranty?</div>
+                    <div class="info-value" style="margin-top: 0;"><%= (request.is_warranty === 1 || request.is_warranty === true) ? 'Yes' : 'No' %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Problem Status</div>
+                    <div class="info-value">
+                        <% if (request.is_solved === 1 || request.is_solved === true) { %>
+                            <span style="color: #047857; font-weight: 700;">✅ Resolved / Solved</span>
+                        <% } else { %>
+                            <span style="color: #b91c1c; font-weight: 700;">❌ Unresolved</span>
+                        <% } %>
+                    </div>
+                </div>
+                <% if (request.estimated_delivery_date || request.estimated_cost) { %>
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; display: flex; gap: 16px;">
+                        <% if (request.estimated_delivery_date) { %>
+                            <div>
+                                <div class="info-label" style="font-size: 8px;">Estimated Delivery Date</div>
+                                <div class="info-value"><%= new Date(request.estimated_delivery_date).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) %></div>
+                            </div>
+                        <% } %>
+                        <% if (request.estimated_cost) { %>
+                            <div>
+                                <div class="info-label" style="font-size: 8px;">Estimated Cost</div>
+                                <div class="info-value" style="font-weight: 700; color: #4f46e5;">₹<%= parseFloat(request.estimated_cost).toFixed(2) %></div>
+                            </div>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Problem Solved Status Banner -->
+        <% if (request.is_solved === 1 || request.is_solved === true) { %>
+            <div class="resolved-banner">
+                <span>✔ The service problem has been fully diagnosed, repaired, and verified as SOLVED.</span>
+            </div>
+        <% } else { %>
+            <div class="unresolved-banner">
+                <span>✖ The device was delivered without full problem resolution (customer request / unrepairable defect).</span>
+            </div>
+        <% } %>
+
+        <!-- Checklist of Accessories Returned -->
+        <div class="section-title">Returned Items / Accessories</div>
+        <div class="returned-box" style="margin-bottom: 24px;">
+            <% if (Array.isArray(request.returned_items) && request.returned_items.length > 0) { %>
+                <% request.returned_items.forEach(function(item) { %>
+                    <span class="returned-badge">✔ <%= item %></span>
+                <% }); %>
+            <% } else { %>
+                <span style="font-style: italic; color: #94a3b8;">No accessories registered or returned.</span>
+            <% } %>
+        </div>
+
+        <!-- Replaced Parts Section -->
+        <% if (Array.isArray(request.new_parts) && request.new_parts.length > 0) { %>
+            <div class="section-title">New Replaced Parts</div>
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Part Description</th>
+                        <th style="width: 25%;">Brand</th>
+                        <th style="width: 25%;">Serial Code</th>
+                        <th style="width: 15%; text-align: right;">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% request.new_parts.forEach(function(part) { %>
+                        <tr>
+                            <td style="font-weight: 600; color: #0f172a;"><%= part.name || 'N/A' %></td>
+                            <td><%= part.brand || 'N/A' %></td>
+                            <td style="font-family: monospace; font-size: 11px;"><%= part.serial || 'N/A' %></td>
+                            <td style="text-align: right; font-weight: 600;">
+                                <%= (part.cost !== undefined && part.cost !== null && part.cost !== '') ? `₹${parseFloat(part.cost).toFixed(2)}` : '₹0.00' %>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        <% } %>
+
+        <!-- Summary section -->
+        <div class="summary-block">
+            <table class="summary-table">
+                <tr>
+                    <td class="label">Replaced Parts Total:</td>
+                    <td class="value">₹<%= parseFloat(partsTotal).toFixed(2) %></td>
+                </tr>
+                <tr>
+                    <td class="label">Labor & Service Fee:</td>
+                    <td class="value">₹<%= parseFloat(laborFee).toFixed(2) %></td>
+                </tr>
+                <tr class="total-row">
+                    <td class="label">GRAND TOTAL:</td>
+                    <td class="value">₹<%= parseFloat(grandTotal).toFixed(2) %></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Signatures -->
+        <div class="signature-grid">
+            <div class="signature-line">Authorized Technician Signature</div>
+            <div class="signature-line">Customer Acknowledgment Signature</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-meta">
+            <span>Registered by User: <strong><%= registeredBy %></strong></span>
+            <span>Ticket ID: #SR-<%= ticketId %></span>
+        </div>
+    </div>
+</body>
+</html>
