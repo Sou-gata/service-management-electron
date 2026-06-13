@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Send, Eye, ArrowLeft, Loader2, Layers } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import apiService from "../utils/apiService";
 import PaginationTable from "./PaginationTable";
 import type { Column } from "./PaginationTable";
@@ -205,7 +206,7 @@ const ServicingTab: React.FC<ServicingTabProps> = ({
                     </button>
                 </div>
 
-                <div className="relative bg-card/45 border border-border/80 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-xl">
+                <div className="relative bg-card/45 border border-border/80 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-xl overflow-hidden">
                     {loadingProducts && (
                         <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center rounded-xl z-20">
                             <div className="flex flex-col items-center gap-2">
@@ -217,59 +218,69 @@ const ServicingTab: React.FC<ServicingTabProps> = ({
                         </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                        <div className="flex-1 max-w-sm relative">
-                            <input
-                                type="text"
-                                placeholder="Search products, customer, S/N..."
-                                value={pagination.search}
-                                onChange={(e) =>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={subTab}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            transition={{ duration: 0.15 }}
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                <div className="flex-1 max-w-sm relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search products, customer, S/N..."
+                                        value={pagination.search}
+                                        onChange={(e) =>
+                                            setPagination((prev) => ({
+                                                ...prev,
+                                                search: e.target.value,
+                                                currentPage: 1,
+                                            }))
+                                        }
+                                        className="w-full bg-background border border-input rounded-lg py-2 px-3 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 hover:border-border transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <PaginationTable
+                                columns={columns}
+                                data={tableData}
+                                currentPage={pagination.currentPage}
+                                totalPages={pagination.totalPages}
+                                rowsPerPage={pagination.rowsPerPage}
+                                onPageChange={(page) =>
                                     setPagination((prev) => ({
                                         ...prev,
-                                        search: e.target.value,
+                                        currentPage: page,
+                                    }))
+                                }
+                                onRowsPerPageChange={(rows) =>
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        rowsPerPage: rows,
                                         currentPage: 1,
                                     }))
                                 }
-                                className="w-full bg-background border border-input rounded-lg py-2 px-3 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 hover:border-border transition-all"
+                                onSort={(key, dir) => {
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        sortBy: key,
+                                        sortOrder: dir,
+                                    }));
+                                }}
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <Layers className="h-4 w-4 text-cyan-500" />
+                                        <span className="font-bold text-foreground">
+                                            {subTab === "Servicing" ? "Active Servicing" : "Completed Servicing"} - {selectedCompany.name}
+                                        </span>
+                                    </div>
+                                }
                             />
-                        </div>
-                    </div>
-
-                    <PaginationTable
-                        columns={columns}
-                        data={tableData}
-                        currentPage={pagination.currentPage}
-                        totalPages={pagination.totalPages}
-                        rowsPerPage={pagination.rowsPerPage}
-                        onPageChange={(page) =>
-                            setPagination((prev) => ({
-                                ...prev,
-                                currentPage: page,
-                            }))
-                        }
-                        onRowsPerPageChange={(rows) =>
-                            setPagination((prev) => ({
-                                ...prev,
-                                rowsPerPage: rows,
-                                currentPage: 1,
-                            }))
-                        }
-                        onSort={(key, dir) => {
-                            setPagination((prev) => ({
-                                ...prev,
-                                sortBy: key,
-                                sortOrder: dir,
-                            }));
-                        }}
-                        title={
-                            <div className="flex items-center gap-2">
-                                <Layers className="h-4 w-4 text-cyan-500" />
-                                <span className="font-bold text-foreground">
-                                    {subTab === "Servicing" ? "Active Servicing" : "Completed Servicing"} - {selectedCompany.name}
-                                </span>
-                            </div>
-                        }
-                    />
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </div>
         );
@@ -303,65 +314,74 @@ const ServicingTab: React.FC<ServicingTabProps> = ({
                 </button>
             </div>
 
-            <div className="overflow-x-auto border border-border rounded-xl">
-                <table className="w-full text-sm text-left border-collapse">
-                    <thead>
-                        <tr className="bg-muted/40 border-b border-border text-foreground font-semibold">
-                            <th className="p-4 text-xs uppercase tracking-wider">Company Details</th>
-                            <th className="p-4 text-xs uppercase tracking-wider text-center">
-                                {subTab === "Servicing" ? "Active Servicing" : "Completed Servicing"}
-                            </th>
-                            <th className="p-4 text-xs uppercase tracking-wider text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                        {companies.map((company) => {
-                            const companyRequests = data.filter(
-                                (sr) => sr.servicing_company_id === company.id
-                            );
-                            const count = companyRequests.filter((sr) => {
-                                const isServicing = sr.servicing_status === "Servicing" || sr.status === "Servicing";
-                                return subTab === "Servicing" ? isServicing : !isServicing;
-                            }).length;
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={subTab}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-x-auto border border-border rounded-xl"
+                >
+                    <table className="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr className="bg-muted/40 border-b border-border text-foreground font-semibold">
+                                <th className="p-4 text-xs uppercase tracking-wider">Company Details</th>
+                                <th className="p-4 text-xs uppercase tracking-wider text-center">
+                                    {subTab === "Servicing" ? "Active Servicing" : "Completed Servicing"}
+                                </th>
+                                <th className="p-4 text-xs uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                            {companies.map((company) => {
+                                const companyRequests = data.filter(
+                                    (sr) => sr.servicing_company_id === company.id
+                                );
+                                const count = companyRequests.filter((sr) => {
+                                    const isServicing = sr.servicing_status === "Servicing" || sr.status === "Servicing";
+                                    return subTab === "Servicing" ? isServicing : !isServicing;
+                                }).length;
 
-                            return (
-                                <tr key={company.id} className="hover:bg-muted/5 transition-colors">
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
-                                                <Send className="h-4.5 w-4.5" />
+                                return (
+                                    <tr key={company.id} className="hover:bg-muted/5 transition-colors">
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-9 w-9 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                                                    <Send className="h-4.5 w-4.5" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-foreground">{company.name}</p>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">{company.address || "No address details"}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-foreground">{company.name}</p>
-                                                <p className="text-xs text-muted-foreground mt-0.5">{company.address || "No address details"}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`inline-block px-2.5 py-1 text-xs font-black rounded-full border ${
-                                            subTab === "Servicing"
-                                                ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25"
-                                                : "bg-muted text-foreground border-border"
-                                        }`}>
-                                            {count}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button
-                                            onClick={() => handleSelectCompany(company)}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 cursor-pointer transition-colors border border-indigo-500/10"
-                                            type="button"
-                                        >
-                                            <Eye className="h-3.5 w-3.5" />
-                                            <span>View Products ({count})</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`inline-block px-2.5 py-1 text-xs font-black rounded-full border ${
+                                                subTab === "Servicing"
+                                                    ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25"
+                                                    : "bg-muted text-foreground border-border"
+                                            }`}>
+                                                {count}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <button
+                                                onClick={() => handleSelectCompany(company)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 cursor-pointer transition-colors border border-indigo-500/10"
+                                                type="button"
+                                            >
+                                                <Eye className="h-3.5 w-3.5" />
+                                                <span>View Products ({count})</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </motion.div>
+            </AnimatePresence>
         </div>
     );
 };

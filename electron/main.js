@@ -1,10 +1,17 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require("electron");
+const {
+    app,
+    BrowserWindow,
+    ipcMain,
+    dialog,
+    shell,
+    Menu,
+} = require("electron");
 const path = require("path");
 const { fork } = require("child_process");
 const http = require("http");
 const fs = require("fs");
 
-// ─── Single Instance Lock ───────────────────────────────────────────────────
+// Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
@@ -20,13 +27,13 @@ if (!gotTheLock) {
 // Disable application menu bar globally
 Menu.setApplicationMenu(null);
 
-// ─── Globals ────────────────────────────────────────────────────────────────
+// Globals
 let mainWindow = null;
 let serverProcess = null;
 const API_PORT = 5000;
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
-// ─── Database path in userData so it persists across updates ────────────────
+// Database path in userData so it persists across updates
 function getDbPath() {
     const userDataPath = app.getPath("userData");
     return path.join(userDataPath, "service_management.db");
@@ -35,10 +42,10 @@ function getDbPath() {
 function startIpcPdfServer() {
     return new Promise((resolve) => {
         const pdfServer = http.createServer(async (req, res) => {
-            if (req.url === '/generate-pdf' && req.method === 'POST') {
-                let body = '';
-                req.on('data', chunk => body += chunk.toString());
-                req.on('end', async () => {
+            if (req.url === "/generate-pdf" && req.method === "POST") {
+                let body = "";
+                req.on("data", (chunk) => (body += chunk.toString()));
+                req.on("end", async () => {
                     try {
                         const { htmlContent, filename } = JSON.parse(body);
                         const pdfWindow = new BrowserWindow({
@@ -48,17 +55,26 @@ function startIpcPdfServer() {
                                 contextIsolation: true,
                             },
                         });
-                        await pdfWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-                        const pdfBuffer = await pdfWindow.webContents.printToPDF({
-                            pageSize: "A4",
-                            printBackground: true,
-                            margins: { marginType: "custom", top: 0.59, bottom: 0.59, left: 0.59, right: 0.59 },
-                        });
+                        await pdfWindow.loadURL(
+                            `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+                        );
+                        const pdfBuffer =
+                            await pdfWindow.webContents.printToPDF({
+                                pageSize: "A4",
+                                printBackground: true,
+                                margins: {
+                                    marginType: "custom",
+                                    top: 0.59,
+                                    bottom: 0.59,
+                                    left: 0.59,
+                                    right: 0.59,
+                                },
+                            });
                         pdfWindow.close();
 
                         res.writeHead(200, {
-                            'Content-Type': 'application/pdf',
-                            'Content-Disposition': `attachment; filename=${filename}`
+                            "Content-Type": "application/pdf",
+                            "Content-Disposition": `attachment; filename=${filename}`,
                         });
                         res.end(pdfBuffer);
                     } catch (err) {
@@ -73,7 +89,7 @@ function startIpcPdfServer() {
             }
         });
 
-        pdfServer.listen(0, '127.0.0.1', () => {
+        pdfServer.listen(0, "127.0.0.1", () => {
             const port = pdfServer.address().port;
             console.log(`[Main] IPC PDF Server listening on port ${port}`);
             resolve(port);
@@ -81,7 +97,7 @@ function startIpcPdfServer() {
     });
 }
 
-// ─── Start the Express backend server ───────────────────────────────────────
+// Start the Express backend server
 function startBackendServer(pdfPort) {
     return new Promise((resolve, reject) => {
         const userDataPath = app.getPath("userData");
@@ -89,7 +105,13 @@ function startBackendServer(pdfPort) {
         const uploadsPath = path.join(userDataPath, "uploads");
 
         // Resolve path to the compiled backend server
-        const serverScript = path.join(__dirname, "..", "backend", "dist", "server.js");
+        const serverScript = path.join(
+            __dirname,
+            "..",
+            "backend",
+            "dist",
+            "server.js"
+        );
 
         const viewsPath = app.isPackaged
             ? path.join(process.resourcesPath, "views")
@@ -156,7 +178,7 @@ function startBackendServer(pdfPort) {
     });
 }
 
-// ─── Create the main browser window ─────────────────────────────────────────
+// Create the main browser window
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1400,
@@ -190,7 +212,13 @@ function createWindow() {
         mainWindow.loadFile(frontendBuild);
         mainWindow.webContents.openDevTools({ mode: "detach" });
     } else {
-        const frontendPath = path.join(__dirname, "..", "frontend", "dist", "index.html");
+        const frontendPath = path.join(
+            __dirname,
+            "..",
+            "frontend",
+            "dist",
+            "index.html"
+        );
         mainWindow.loadFile(frontendPath);
     }
 
@@ -203,8 +231,8 @@ function createWindow() {
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
-                }
-            }
+                },
+            },
         };
     });
 
@@ -218,7 +246,7 @@ function createWindow() {
     });
 }
 
-// ─── IPC: PDF Generation via Electron's built-in printToPDF ─────────────────
+// IPC: PDF Generation via Electron's built-in printToPDF
 ipcMain.handle("print-to-pdf", async (event, { htmlContent, filename }) => {
     try {
         // Create a hidden BrowserWindow to render the HTML and export PDF

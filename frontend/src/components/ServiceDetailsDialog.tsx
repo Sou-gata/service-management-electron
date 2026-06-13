@@ -119,7 +119,13 @@ export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
                             ) : (
                                 <>
                                     <Printer className="h-3.5 w-3.5" />
-                                    <span>Print Receipt</span>
+                                    <span>
+                                        {activeRequest.status === "Servicing"
+                                            ? "Print Dispatch Challan"
+                                            : activeRequest.status === "Delivered"
+                                            ? "Print Delivery Receipt"
+                                            : "Print Intake Receipt"}
+                                    </span>
                                 </>
                             )}
                         </button>

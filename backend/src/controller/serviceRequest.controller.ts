@@ -6,8 +6,9 @@ import type { Request, Response } from "express";
 import type { CustomRequest } from "../middleware/auth.middleware.js";
 import path from "path";
 import ejs from "ejs";
+import { getFontsCss } from "../utils/fonts.js";
 
-// ─── Helper: Resolve views path (works in Electron packaged & dev) ───────────
+// Helper: Resolve views path (works in Electron packaged & dev)
 function getViewsPath(): string {
     if (process.env.VIEWS_PATH) {
         return process.env.VIEWS_PATH;
@@ -15,7 +16,7 @@ function getViewsPath(): string {
     return path.join(process.cwd(), "views");
 }
 
-// ─── Helper: Generate PDF via Electron IPC ───────────────────────────────────
+// Helper: Generate PDF via Electron IPC
 // Returns the raw PDF buffer. Sends a request to the main process which uses
 // webContents.printToPDF() — no Puppeteer/Chromium needed.
 async function generatePdfViaIpc(
@@ -793,7 +794,7 @@ export const getServiceRequestStats = asyncHandler(
     }
 );
 
-// ─── PDF Generation via Electron IPC (replaces Puppeteer) ───────────────────
+// PDF Generation via Electron IPC (replaces Puppeteer)
 export const downloadServiceRequestPdf = asyncHandler(
     async (req: Request, res: Response) => {
         const id = parseInt(req.params.id as string);
@@ -805,9 +806,11 @@ export const downloadServiceRequestPdf = asyncHandler(
             );
 
         const [requests] = (await pool.query(
-            `SELECT sr.*, u.username as registered_by_user 
+            `SELECT sr.*, u.username as registered_by_user,
+                    c.name as company_name, c.mobile as company_mobile, c.address as company_address
             FROM service_requests sr 
             LEFT JOIN users u ON sr.created_by = u.id 
+            LEFT JOIN companies c ON sr.servicing_company_id = c.id
             WHERE sr.id = ?`,
             [id]
         )) as [any[], any];
@@ -839,9 +842,12 @@ export const downloadServiceRequestPdf = asyncHandler(
         const registeredBy = request.registered_by_user || "System";
 
         const isDelivered = request.status === "Delivered";
+        const isServicing = request.status === "Servicing";
         const templateName = isDelivered
             ? "delivery_receipt.ejs"
-            : "intake_receipt.ejs";
+            : isServicing
+              ? "servicing_receipt.ejs"
+              : "intake_receipt.ejs";
         const templatePath = path.join(getViewsPath(), templateName);
 
         let partsTotal = 0;
@@ -872,6 +878,7 @@ export const downloadServiceRequestPdf = asyncHandler(
                 partsTotal,
                 laborFee,
                 grandTotal,
+                fontsCss: getFontsCss(getViewsPath()),
             });
         } catch (err: any) {
             throw new ApiErrorResponse(

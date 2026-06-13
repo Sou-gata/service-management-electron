@@ -2,72 +2,7 @@ import { Database } from "node-sqlite3-wasm";
 import bcrypt from "bcryptjs";
 
 export function applyUpdates(database: Database): void {
-    // Alterations in separate try-catch blocks
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN product_image TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN estimated_delivery_date TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN estimated_cost REAL");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN dispatch_date TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN servicing_company_id INTEGER");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN challan_no TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN courier_details TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN is_sent_for_servicing INTEGER DEFAULT 0");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN delivery_date TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_requests ADD COLUMN is_warranty INTEGER DEFAULT 0");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT ''");
-    } catch (error) {}
-
-    try {
-        database.run("UPDATE users SET name = username WHERE name IS NULL OR name = ''");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_request_items ADD COLUMN sent_for_servicing INTEGER DEFAULT 0");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_request_items ADD COLUMN servicing_problem_description TEXT");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE service_request_items ADD COLUMN is_warranty INTEGER DEFAULT 0");
-    } catch (error) {}
-
-    try {
-        database.run("ALTER TABLE companies ADD COLUMN status TEXT DEFAULT 'active'");
-    } catch (error) {}
-
-    // ── Seed default device types ───────────────────────────────────────────
+    // Seed default device types
     const dtCount =
         (database.get("SELECT COUNT(*) as count FROM device_types") as any)
             ?.count ?? 0;
@@ -125,22 +60,6 @@ export function applyUpdates(database: Database): void {
                 "admin@example.com",
                 "admin",
             ]
-        );
-    }
-
-    // Cleanup/Update existing servicings records that are completed/delivered/repaired
-    try {
-        database.run(`
-            UPDATE servicings 
-            SET status = 'Completed', updated_at = CURRENT_TIMESTAMP 
-            WHERE status = 'Servicing' AND service_request_id IN (
-                SELECT id FROM service_requests WHERE status IN ('Completed', 'Delivered', 'Repaired', 'Unrepairable')
-            )
-        `);
-    } catch (error) {
-        console.error(
-            "Failed to run database cleanup for completed servicings:",
-            error
         );
     }
 }

@@ -1,89 +1,92 @@
 {
-  "name": "service-management-electron",
-  "version": "1.0.0",
-  "description": "Service Management Desktop Application",
-  "main": "electron/main.js",
-  "type": "commonjs",
-  "scripts": {
-    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
-    "backend:dev": "cd backend && npx tsx watch server.ts",
-    "frontend:dev": "cd frontend && npx vite",
-    "backend:build": "cd backend && npx tsc",
-    "frontend:build": "cd frontend && npx vite build",
-    "build": "npm run backend:build && npm run frontend:build",
-    "electron:dev": "npm run build && electron .",
-    "electron:start": "electron .",
-    "package": "npm run build && electron-builder build --win",
-    "package:dir": "npm run build && electron-builder build --win --dir",
-    "postinstall": "electron-builder install-app-deps"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "ejs": "^3.1.10",
-    "express": "^4.21.1",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.1.1",
-    "node-sqlite3-wasm": "^0.8.35"
-  },
-  "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/ejs": "^3.1.5",
-    "@types/express": "^5.0.0",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^22.0.0",
-    "concurrently": "^9.1.0",
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8",
-    "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
-  },
-  "build": {
-    "appId": "com.servicemanagement.app",
-    "productName": "Service Management",
-    "directories": {
-      "buildResources": "assets",
-      "output": "release"
+    "name": "service-management-electron",
+    "version": "1.0.2",
+    "description": "Service Management Desktop Application",
+    "main": "electron/main.js",
+    "type": "commonjs",
+    "author": "Sougata Talukdar",
+    "scripts": {
+        "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+        "backend:dev": "cd backend && npx tsx watch server.ts",
+        "frontend:dev": "cd frontend && npx vite",
+        "backend:build": "cd backend && npx tsc",
+        "frontend:build": "cd frontend && npx vite build",
+        "build": "npm run backend:build && npm run frontend:build",
+        "electron:dev": "npm run build && electron .",
+        "electron:start": "electron .",
+        "package": "npm run build && electron-builder build --win",
+        "package:dir": "npm run build && electron-builder build --win --dir",
+        "postinstall": "electron-builder install-app-deps"
     },
-    "files": [
-      "electron/**/*",
-      "backend/dist/**/*",
-      "backend/views/**/*",
-      "frontend/dist/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "backend/views",
-        "to": "views",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "bcryptjs": "^3.0.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "ejs": "^3.1.10",
+        "express": "^4.21.1",
+        "jsonwebtoken": "^9.0.3",
+        "multer": "^2.1.1",
+        "node-sqlite3-wasm": "^0.8.35"
+    },
+    "devDependencies": {
+        "@types/bcryptjs": "^2.4.6",
+        "@types/cors": "^2.8.19",
+        "@types/ejs": "^3.1.5",
+        "@types/express": "^5.0.0",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^22.0.0",
+        "concurrently": "^9.1.0",
+        "electron": "^33.2.0",
+        "electron-builder": "^25.1.8",
+        "tsx": "^4.19.2",
+        "typescript": "^5.6.3"
+    },
+    "build": {
+        "appId": "com.servicemanagement.app",
+        "productName": "Service Management",
+        "copyright": "Copyright © 2026 Sougata Talukdar. All rights reserved.",
+        "directories": {
+            "buildResources": "assets",
+            "output": "release"
+        },
+        "files": [
+            "electron/**/*",
+            "backend/dist/**/*",
+            "backend/views/**/*",
+            "frontend/dist/**/*",
+            "node_modules/**/*",
+            "package.json"
+        ],
+        "extraResources": [
+            {
+                "from": "backend/views",
+                "to": "views",
+                "filter": [
+                    "**/*"
+                ]
+            }
+        ],
+        "win": {
+            "publisherName": "Sougata Talukdar",
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "assets/icon.ico"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Service Management"
         }
-      ],
-      "icon": "assets/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Service Management"
     }
-  }
 }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Service Intake Report - SR-<%= ticketId %></title>
+    <title>Servicing Dispatch Challan - SR-<%= ticketId %></title>
     <style>
         <%- fontsCss %>
         
@@ -31,7 +31,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 3px solid #06b6d4; /* Cyan border */
             padding-bottom: 10px;
             margin-bottom: 12px;
         }
@@ -39,14 +39,14 @@
         .brand-section h1 {
             font-size: 24px;
             font-weight: 800;
-            color: #4f46e5;
+            color: #0891b2; /* Cyan dark */
             letter-spacing: -0.025em;
             text-transform: uppercase;
         }
 
         .brand-section p {
-            font-size: 12px;
-            color: #64748b;
+            font-size: 11px;
+            color: #475569;
             margin-top: 2px;
         }
 
@@ -71,7 +71,7 @@
             font-family: monospace;
             font-size: 15px;
             font-weight: 700;
-            color: #4f46e5;
+            color: #0891b2;
             margin-top: 2px;
         }
 
@@ -84,13 +84,44 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            background-color: #ecfeff;
+            color: #0891b2;
+            border: 1px solid #c5f2f7;
         }
 
-        /* Status Colors */
-        .status-Received { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-        .status-Diagnosing { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-        .status-In-Progress { background-color: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
-        .status-Completed { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        /* Dispatch details banner */
+        .dispatch-banner {
+            background-color: #ecfeff;
+            border: 1px solid #a5f3fc;
+            color: #0e7490;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .dispatch-banner-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dispatch-banner-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #0891b2;
+            letter-spacing: 0.05em;
+        }
+
+        .dispatch-banner-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-top: 2px;
+        }
 
         /* Grid for details */
         .details-grid {
@@ -110,7 +141,7 @@
         .details-card h3 {
             font-size: 11px;
             font-weight: 700;
-            color: #4f46e5;
+            color: #0891b2;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 8px;
@@ -135,7 +166,7 @@
         }
 
         .info-value {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: #0f172a;
             margin-top: 2px;
@@ -144,17 +175,17 @@
 
         .info-value.mono {
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .problem-desc-box {
-            font-size: 12px;
+            font-size: 11px;
             color: #334155;
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 8px 12px;
-            min-height: 50px;
+            padding: 6px 10px;
+            min-height: 40px;
             margin-top: 4px;
             white-space: pre-wrap;
         }
@@ -167,7 +198,7 @@
         .items-section h3 {
             font-size: 11px;
             font-weight: 700;
-            color: #4f46e5;
+            color: #0891b2;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 6px;
@@ -204,7 +235,7 @@
         .items-table td.item-name {
             font-weight: 600;
             color: #0f172a;
-            width: 35%;
+            width: 30%;
         }
 
         .items-table td.item-desc {
@@ -216,25 +247,33 @@
             color: #94a3b8;
         }
 
-        /* Agreement & Signatures */
-        .agreement-section {
-            font-size: 10px;
+        .status-pill {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .status-sent {
+            background-color: #ecfeff;
+            color: #0891b2;
+            border: 1px solid #a5f3fc;
+        }
+
+        .status-not-sent {
+            background-color: #f8fafc;
             color: #64748b;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 10px;
-            margin-top: 20px;
-            page-break-inside: avoid;
+            border: 1px solid #cbd5e1;
         }
 
-        .agreement-section p {
-            line-height: 1.4;
-        }
-
+        /* Signatures */
         .signature-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-top: 30px;
+            margin-top: 40px;
             page-break-inside: avoid;
         }
 
@@ -256,7 +295,7 @@
             color: #94a3b8;
             border-top: 1px dotted #e2e8f0;
             padding-top: 8px;
-            margin-top: 20px;
+            margin-top: 30px;
         }
     </style>
 </head>
@@ -267,39 +306,40 @@
             <div class="brand-section">
                 <h1>RADHA IT SOLUTION & SERVICES</h1>
                 <p>GANGARAMPUR<br>BARABAZAR<br>DAKSHIN DINAJPUR<br>PH - 9332554299<br>EMAIL - radheitsolutionservices@gmail.com</p>
-                <div class="meta-date">Bill Generated: <%= generatedAt %></div>
+                <div class="meta-date">Date Printed: <%= generatedAt %></div>
             </div>
             <div class="ticket-section">
-                <h2>INTAKE REPORT</h2>
+                <h2>SERVICING DISPATCH CHALLAN</h2>
                 <div class="ticket-id">#SR-<%= ticketId %></div>
-                <span class="status-badge status-<%= statusClass %>"><%= request.status %></span>
+                <span class="status-badge">OUTWARD CHALLAN</span>
+            </div>
+        </div>
+
+        <!-- Dispatch Information Banner -->
+        <div class="dispatch-banner">
+            <div class="dispatch-banner-item">
+                <span class="dispatch-banner-label">Challan No.</span>
+                <span class="dispatch-banner-value"><%= request.challan_no || 'N/A' %></span>
+            </div>
+            <div class="dispatch-banner-item">
+                <span class="dispatch-banner-label">Dispatch Date</span>
+                <span class="dispatch-banner-value">
+                    <%= request.dispatch_date ? new Date(request.dispatch_date).toLocaleDateString("en-GB") : 'N/A' %>
+                </span>
+            </div>
+            <div class="dispatch-banner-item" style="flex-grow: 1;">
+                <span class="dispatch-banner-label">Courier & Transport Details</span>
+                <span class="dispatch-banner-value"><%= request.courier_details || 'Hand Delivery / Self' %></span>
             </div>
         </div>
 
         <!-- Details Grid -->
         <div class="details-grid">
-            <!-- Customer Card -->
+            <!-- Product Specs -->
             <div class="details-card">
-                <h3>Customer Information</h3>
+                <h3>Product Specifications</h3>
                 <div class="info-group">
-                    <div class="info-label">Name</div>
-                    <div class="info-value"><%= request.customer_name %></div>
-                </div>
-                <div class="info-group">
-                    <div class="info-label">Mobile Number</div>
-                    <div class="info-value"><%= request.customer_mobile %></div>
-                </div>
-                <div class="info-group">
-                    <div class="info-label">Address</div>
-                    <div class="info-value"><%= request.customer_address %></div>
-                </div>
-            </div>
-
-            <!-- Device Card -->
-            <div class="details-card">
-                <h3>Device Specifications</h3>
-                <div class="info-group">
-                    <div class="info-label">Device Model & Type</div>
+                    <div class="info-label">Device model & type</div>
                     <div class="info-value"><%= request.brand_model %> (<%= request.device_type %>)</div>
                 </div>
                 <div class="info-group">
@@ -307,41 +347,43 @@
                     <div class="info-value mono"><%= request.serial_number || 'N/A' %></div>
                 </div>
                 <div class="info-group" style="display: flex; align-items: center; gap: 6px;">
-                    <div class="info-label" style="margin-bottom: 0;">Has Warranty?</div>
+                    <div class="info-label" style="margin-bottom: 0;">Is In Warranty?</div>
                     <div class="info-value" style="margin-top: 0;"><%= (request.is_warranty === 1 || request.is_warranty === true) ? 'Yes' : 'No' %></div>
                 </div>
                 <div class="info-group">
-                    <div class="info-label">Problem Description</div>
-                    <div class="problem-desc-box"><%= request.problem_description || 'No specific defect commented.' %></div>
+                    <div class="info-label">Problem / Service Required</div>
+                    <div class="problem-desc-box"><%= request.problem_description || 'General Service / Inspected Faults.' %></div>
                 </div>
-                <% if (request.estimated_delivery_date || request.estimated_cost) { %>
-                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; display: flex; gap: 16px;">
-                        <% if (request.estimated_delivery_date) { %>
-                            <div>
-                                <div class="info-label" style="font-size: 8px;">Estimated Delivery Date</div>
-                                <div class="info-value"><%= new Date(request.estimated_delivery_date).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) %></div>
-                            </div>
-                        <% } %>
-                        <% if (request.estimated_cost) { %>
-                            <div>
-                                <div class="info-label" style="font-size: 8px;">Estimated Cost</div>
-                                <div class="info-value" style="font-weight: 700; color: #4f46e5;">₹<%= parseFloat(request.estimated_cost).toFixed(2) %></div>
-                            </div>
-                        <% } %>
-                    </div>
-                <% } %>
+            </div>
+
+            <!-- Destination Service Center Details -->
+            <div class="details-card">
+                <h3>Service Center / Destination</h3>
+                <div class="info-group">
+                    <div class="info-label">Service Partner Name</div>
+                    <div class="info-value" style="font-weight: 700; color: #0891b2;"><%= request.company_name || 'N/A' %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Contact Mobile</div>
+                    <div class="info-value"><%= request.company_mobile || 'N/A' %></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Address</div>
+                    <div class="info-value"><%= request.company_address || 'N/A' %></div>
+                </div>
             </div>
         </div>
 
-        <!-- Checklist of Items Received -->
+        <!-- Checklist of Items Received & Sent -->
         <div class="items-section">
-            <h3>Checklist of Items Received (<%= request.items ? request.items.length : 0 %>)</h3>
+            <h3>Checklist of Associated Accessories</h3>
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th style="width: 30%;">Item Name</th>
-                        <th style="width: 50%;">Specifications / Condition / Serial</th>
-                        <th style="width: 20%; text-align: center;">Warranty</th>
+                        <th style="width: 25%;">Item Name</th>
+                        <th style="width: 35%;">Specifications / Condition</th>
+                        <th style="width: 15%; text-align: center;">Sent to Center?</th>
+                        <th style="width: 25%;">Servicing Problem Description</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -349,16 +391,23 @@
                         <% request.items.forEach(function(item) { %>
                             <tr>
                                 <td class="item-name"><%= item.item_name %></td>
-                                <td class="item-desc"><%- item.item_description || '<span class="italic-muted">Verified received</span>' %></td>
-                                <td style="text-align: center; font-weight: bold; color: <%= (item.is_warranty === 1 || item.is_warranty === true) ? '#059669' : '#dc2626' %>;">
-                                    <%= (item.is_warranty === 1 || item.is_warranty === true) ? 'Yes' : 'No' %>
+                                <td class="item-desc"><%= item.item_description || 'Verified' %></td>
+                                <td style="text-align: center;">
+                                    <% if (item.sent_for_servicing === 1 || item.sent_for_servicing === true) { %>
+                                        <span class="status-pill status-sent">Yes</span>
+                                    <% } else { %>
+                                        <span class="status-pill status-not-sent">No</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <%= item.servicing_problem_description || (item.sent_for_servicing === 1 ? 'Refer to main issue' : 'Kept at intake store') %>
                                 </td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="3" class="italic-muted" style="text-align: center; padding: 20px;">
-                                No standalone accessories or chargers registered.
+                            <td colspan="4" class="italic-muted" style="text-align: center; padding: 20px;">
+                                No standalone accessories or chargers dispatched.
                             </td>
                         </tr>
                     <% } %>
@@ -366,20 +415,15 @@
             </table>
         </div>
 
-        <!-- Agreement Terms -->
-        <div class="agreement-section">
-            <p><strong>Agreement Terms:</strong> By signing below, the customer acknowledges that the items listed above have been physically left with the Service Portal for diagnosis and repair. The customer declares that any existing cosmetic damage, data loss risk, and software/hardware failure is not the liability of the service portal during repair trials. Estimated diagnostic reports will be communicated.</p>
-        </div>
-
         <!-- Signatures -->
         <div class="signature-grid">
-            <div class="signature-line">Customer Signature</div>
-            <div class="signature-line">Authorized Receiver Signature</div>
+            <div class="signature-line">Authorized Dispatcher Signature</div>
+            <div class="signature-line">Service Center Acknowledgment & Received By</div>
         </div>
 
         <!-- Footer -->
         <div class="footer-meta">
-            <span>Registered by User: <strong><%= registeredBy %></strong></span>
+            <span>Dispatched by User: <strong><%= registeredBy %></strong></span>
             <span>Ticket ID: #SR-<%= ticketId %></span>
         </div>
     </div>

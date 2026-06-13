@@ -36,6 +36,13 @@ export function initializeDatabase(database: Database): void {
             new_parts TEXT,
             created_by INTEGER,
             product_image TEXT,
+            dispatch_date TEXT,
+            servicing_company_id INTEGER,
+            challan_no TEXT,
+            courier_details TEXT,
+            is_sent_for_servicing INTEGER DEFAULT 0,
+            delivery_date TEXT,
+            is_warranty INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL

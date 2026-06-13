@@ -1,10 +1,11 @@
-import { closeDb, getDbPath } from "../config/db.js";
+import pool, { closeDb, getDbPath } from "../config/db.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiErrorResponse from "../utils/ApiErrorResponse.js";
 import type { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
+import { Database } from "node-sqlite3-wasm";
 
 /**
  * Download a backup copy of the SQLite database
@@ -46,6 +47,60 @@ export const restoreDatabase = asyncHandler(
 
         try {
             console.log(`[Restore] Starting restore from: ${tempFilePath}`);
+
+            // 0. Validate the backup file before doing any changes
+            let backupDbInstance: Database | null = null;
+            try {
+                backupDbInstance = new Database(tempFilePath);
+                
+                // Get active database schema (tables)
+                const [activeTables] = await pool.query(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                );
+
+                if (!activeTables || activeTables.length === 0) {
+                    throw new Error("Active database has no tables to compare against.");
+                }
+
+                for (const tableRow of activeTables) {
+                    const tableName = tableRow.name;
+                    
+                    // Check if table exists in backup
+                    const backupTableCheck = backupDbInstance.get(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+                        [tableName]
+                    ) as { name: string } | undefined;
+
+                    if (!backupTableCheck) {
+                        throw new Error(`Table '${tableName}' is missing from the backup file.`);
+                    }
+
+                    // Get columns of the table in active database
+                    const [activeColumns] = await pool.query(`PRAGMA table_info(${tableName})`);
+                    const activeColNames = new Set((activeColumns as { name: string }[]).map(c => c.name));
+
+                    // Get columns of the table in backup database
+                    const backupColumns = backupDbInstance.all(`PRAGMA table_info(${tableName})`) as { name: string }[];
+                    const backupColNames = new Set(backupColumns.map(c => c.name));
+
+                    // Check that all active columns exist in the backup table
+                    for (const colName of activeColNames) {
+                        if (!backupColNames.has(colName)) {
+                            throw new Error(
+                                `Column '${colName}' in table '${tableName}' is missing from the backup file.`
+                            );
+                        }
+                    }
+                }
+            } catch (validationError: any) {
+                throw new Error(`Invalid backup file: ${validationError.message}`);
+            } finally {
+                if (backupDbInstance) {
+                    try {
+                        backupDbInstance.close();
+                    } catch (_) {}
+                }
+            }
 
             // 1. Create a safety backup of the active database file if it exists
             if (fs.existsSync(dbPath)) {
@@ -127,10 +182,15 @@ export const restoreDatabase = asyncHandler(
                 } catch (_) {}
             }
 
+            const status = error.message.startsWith("Invalid backup file") ? 400 : 500;
+            const errMsg = error.message.startsWith("Invalid backup file")
+                ? error.message
+                : `Database restore failed: ${error.message}`;
+
             throw new ApiErrorResponse(
-                500,
+                status,
                 null,
-                `Database restore failed: ${error.message}`
+                errMsg
             );
         }
     }

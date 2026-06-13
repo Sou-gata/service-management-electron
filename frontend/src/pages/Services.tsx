@@ -98,11 +98,6 @@ const STATUS_OPTIONS = [
         color: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400",
     },
     {
-        value: "Servicing",
-        label: "Servicing",
-        color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20 dark:bg-cyan-500/20 dark:text-cyan-400",
-    },
-    {
         value: "Completed",
         label: "Completed",
         color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400",

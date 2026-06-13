@@ -26,7 +26,7 @@ import {
 } from "recharts";
 import apiService from "../utils/apiService";
 import toaster from "../utils/toaster";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DeviceTypeStat {
     device_type: string;
@@ -57,7 +57,7 @@ interface RecentRequest {
     created_at: string;
 }
 
-const COLORS = [
+const COLORS: string[] = [
     "#6366f1",
     "#10b981",
     "#8b5cf6",
@@ -235,301 +235,330 @@ const Home: React.FC = () => {
                     ))}
                 </div>
             </div>
-            {/* Financial Summary */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <AnimatePresence mode="wait">
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    key={range}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="bg-card/40 border border-border/80 rounded-xl p-5 flex items-center justify-between backdrop-blur-sm shadow-sm relative overflow-hidden"
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="space-y-6"
                 >
-                    <div className="absolute top-0 left-0 bottom-0 w-1 bg-emerald-500" />
-                    <div className="space-y-1 pl-2">
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                            Total Service Charge Revenue
-                        </span>
-                        {loading ? (
-                            <div className="h-8 w-24 bg-muted/65 animate-pulse rounded my-1" />
-                        ) : (
-                            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                                ₹
-                                {(stats.totalRevenue || 0).toLocaleString(
-                                    "en-IN",
-                                    { minimumFractionDigits: 2 }
+                    {/* Financial Summary */}
+                    <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-card/40 border border-border/80 rounded-xl p-5 flex items-center justify-between backdrop-blur-sm shadow-sm relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 bottom-0 w-1 bg-emerald-500" />
+                            <div className="space-y-1 pl-2">
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Total Service Charge Revenue
+                                </span>
+                                {loading ? (
+                                    <div className="h-8 w-24 bg-muted/65 animate-pulse rounded my-1" />
+                                ) : (
+                                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                        ₹
+                                        {(
+                                            stats.totalRevenue || 0
+                                        ).toLocaleString("en-IN", {
+                                            minimumFractionDigits: 2,
+                                        })}
+                                    </p>
                                 )}
-                            </p>
-                        )}
-                        <span className="text-[10px] text-muted-foreground block leading-tight">
-                            Total billed labor fees and parts cost
-                        </span>
-                    </div>
-                    <div className="h-12 w-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-inner shrink-0">
-                        <TrendingUp className="h-6 w-6" />
-                    </div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="bg-card/40 border border-border/80 rounded-xl p-5 flex items-center justify-between backdrop-blur-sm shadow-sm relative overflow-hidden"
-                >
-                    <div className="absolute top-0 left-0 bottom-0 w-1 bg-indigo-500" />
-                    <div className="space-y-1 pl-2">
-                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                            Labor Fees Collected
-                        </span>
-                        {loading ? (
-                            <div className="h-8 w-24 bg-muted/65 animate-pulse rounded my-1" />
-                        ) : (
-                            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-                                ₹
-                                {(stats.totalLabor || 0).toLocaleString(
-                                    "en-IN",
-                                    { minimumFractionDigits: 2 }
-                                )}
-                            </p>
-                        )}
-                        <span className="text-[10px] text-muted-foreground block leading-tight">
-                            Total charges collected for repair labor
-                        </span>
-                    </div>
-                    <div className="h-12 w-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner shrink-0">
-                        <Coins className="h-6 w-6" />
-                    </div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
-                    className="bg-card/40 border border-border/80 rounded-xl p-5 flex items-center justify-between backdrop-blur-sm shadow-sm relative overflow-hidden"
-                >
-                    <div className="absolute top-0 left-0 bottom-0 w-1 bg-purple-500" />
-                    <div className="space-y-1 pl-2">
-                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                            Replacement Parts Value
-                        </span>
-                        {loading ? (
-                            <div className="h-8 w-24 bg-muted/65 animate-pulse rounded my-1" />
-                        ) : (
-                            <p className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                                ₹
-                                {(stats.totalParts || 0).toLocaleString(
-                                    "en-IN",
-                                    { minimumFractionDigits: 2 }
-                                )}
-                            </p>
-                        )}
-                        <span className="text-[10px] text-muted-foreground block leading-tight">
-                            Total cost of hardware parts replaced
-                        </span>
-                    </div>
-                    <div className="h-12 w-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/20 shadow-inner shrink-0">
-                        <Cpu className="h-6 w-6" />
-                    </div>
-                </motion.div>
-            </section>
-
-            {/* Analytics grid widgets */}
-            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {statCards.map((card, index) => (
-                    <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className={`bg-card/40 border rounded-xl p-4 flex flex-col justify-between backdrop-blur-sm ${card.gradient}`}
-                    >
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                {card.title}
-                            </span>
-                            {card.icon}
-                        </div>
-                        <div>
-                            {loading ? (
-                                <div className="h-8 w-12 bg-muted/65 animate-pulse rounded my-1" />
-                            ) : (
-                                <p
-                                    className={`text-2xl font-black ${card.textColor}`}
-                                >
-                                    {card.value}
-                                </p>
-                            )}
-                            <span className="text-[10px] text-muted-foreground/85 block leading-tight mt-1">
-                                {card.description}
-                            </span>
-                        </div>
-                    </motion.div>
-                ))}
-            </section>
-
-            {/* Visual Charts Section */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Device Type breakdown */}
-                <div className="bg-card/45 border border-border rounded-xl p-5 backdrop-blur-sm shadow-sm flex flex-col justify-between min-h-75">
-                    <div>
-                        <h3 className="font-bold text-sm text-foreground">
-                            Device Category Breakdown
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground mb-4">
-                            Distribution of registered devices by type
-                        </p>
-                    </div>
-                    <div className="h-64 w-full">
-                        {loading ? (
-                            <div className="h-full w-full bg-muted/30 animate-pulse rounded-lg flex items-center justify-center text-xs text-muted-foreground">
-                                Loading chart data...
+                                <span className="text-[10px] text-muted-foreground block leading-tight">
+                                    Total billed labor fees and parts cost
+                                </span>
                             </div>
-                        ) : stats.deviceTypeStats &&
-                          stats.deviceTypeStats.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
-                                    data={stats.deviceTypeStats}
-                                    margin={{
-                                        top: 10,
-                                        right: 10,
-                                        left: -20,
-                                        bottom: 0,
-                                    }}
-                                >
-                                    <XAxis
-                                        dataKey="device_type"
-                                        stroke="#888888"
-                                        fontSize={10}
-                                        tickLine={false}
-                                        axisLine={false}
-                                    />
-                                    <YAxis
-                                        stroke="#888888"
-                                        fontSize={10}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        allowDecimals={false}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                                        {stats.deviceTypeStats.map(
-                                            (_, index) => (
-                                                <Cell
-                                                    key={`cell-${index}`}
-                                                    fill={
-                                                        COLORS[
-                                                            index %
-                                                                COLORS.length
-                                                        ]
-                                                    }
-                                                />
-                                            )
+                            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-inner shrink-0">
+                                <TrendingUp className="h-6 w-6" />
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: 0.1 }}
+                            className="bg-card/40 border border-border/80 rounded-xl p-5 flex items-center justify-between backdrop-blur-sm shadow-sm relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 bottom-0 w-1 bg-indigo-500" />
+                            <div className="space-y-1 pl-2">
+                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                                    Labor Fees Collected
+                                </span>
+                                {loading ? (
+                                    <div className="h-8 w-24 bg-muted/65 animate-pulse rounded my-1" />
+                                ) : (
+                                    <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                                        ₹
+                                        {(stats.totalLabor || 0).toLocaleString(
+                                            "en-IN",
+                                            { minimumFractionDigits: 2 }
                                         )}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground italic">
-                                No device category data available
+                                    </p>
+                                )}
+                                <span className="text-[10px] text-muted-foreground block leading-tight">
+                                    Total charges collected for repair labor
+                                </span>
                             </div>
-                        )}
-                    </div>
-                </div>
+                            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner shrink-0">
+                                <Coins className="h-6 w-6" />
+                            </div>
+                        </motion.div>
 
-                {/* Case Resolution Performance */}
-                <div className="bg-card/45 border border-border rounded-xl p-5 backdrop-blur-sm shadow-sm flex flex-col justify-between min-h-75">
-                    <div>
-                        <h3 className="font-bold text-sm text-foreground">
-                            Case Resolution Performance
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground mb-4">
-                            Success rate of delivered service requests
-                        </p>
-                    </div>
-                    <div className="h-64 w-full flex flex-col sm:flex-row items-center justify-center gap-6">
-                        {loading ? (
-                            <div className="h-full w-full bg-muted/30 animate-pulse rounded-lg flex items-center justify-center text-xs text-muted-foreground">
-                                Loading resolution stats...
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: 0.2 }}
+                            className="bg-card/40 border border-border/80 rounded-xl p-5 flex items-center justify-between backdrop-blur-sm shadow-sm relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 bottom-0 w-1 bg-purple-500" />
+                            <div className="space-y-1 pl-2">
+                                <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                                    Replacement Parts Value
+                                </span>
+                                {loading ? (
+                                    <div className="h-8 w-24 bg-muted/65 animate-pulse rounded my-1" />
+                                ) : (
+                                    <p className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                                        ₹
+                                        {(stats.totalParts || 0).toLocaleString(
+                                            "en-IN",
+                                            { minimumFractionDigits: 2 }
+                                        )}
+                                    </p>
+                                )}
+                                <span className="text-[10px] text-muted-foreground block leading-tight">
+                                    Total cost of hardware parts replaced
+                                </span>
                             </div>
-                        ) : stats.delivered && stats.delivered > 0 ? (
-                            <>
-                                <div className="h-44 w-44 relative shrink-0">
+                            <div className="h-12 w-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/20 shadow-inner shrink-0">
+                                <Cpu className="h-6 w-6" />
+                            </div>
+                        </motion.div>
+                    </section>
+
+                    {/* Analytics grid widgets */}
+                    <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {statCards.map((card, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                    duration: 0.3,
+                                    delay: index * 0.05,
+                                }}
+                                className={`bg-card/40 border rounded-xl p-4 flex flex-col justify-between backdrop-blur-sm ${card.gradient}`}
+                            >
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                        {card.title}
+                                    </span>
+                                    {card.icon}
+                                </div>
+                                <div>
+                                    {loading ? (
+                                        <div className="h-8 w-12 bg-muted/65 animate-pulse rounded my-1" />
+                                    ) : (
+                                        <p
+                                            className={`text-2xl font-black ${card.textColor}`}
+                                        >
+                                            {card.value}
+                                        </p>
+                                    )}
+                                    <span className="text-[10px] text-muted-foreground/85 block leading-tight mt-1">
+                                        {card.description}
+                                    </span>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </section>
+
+                    {/* Visual Charts Section */}
+                    <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Device Type breakdown */}
+                        <div className="bg-card/45 border border-border rounded-xl p-5 backdrop-blur-sm shadow-sm flex flex-col justify-between min-h-75">
+                            <div>
+                                <h3 className="font-bold text-sm text-foreground">
+                                    Device Category Breakdown
+                                </h3>
+                                <p className="text-[11px] text-muted-foreground mb-4">
+                                    Distribution of registered devices by type
+                                </p>
+                            </div>
+                            <div className="h-64 w-full">
+                                {loading ? (
+                                    <div className="h-full w-full bg-muted/30 animate-pulse rounded-lg flex items-center justify-center text-xs text-muted-foreground">
+                                        Loading chart data...
+                                    </div>
+                                ) : stats.deviceTypeStats &&
+                                  stats.deviceTypeStats.length > 0 ? (
                                     <ResponsiveContainer
                                         width="100%"
                                         height="100%"
                                     >
-                                        <PieChart>
-                                            <Pie
-                                                data={[
-                                                    {
-                                                        name: "Solved",
-                                                        value:
-                                                            stats.solvedCount ||
-                                                            0,
-                                                    },
-                                                    {
-                                                        name: "Unsolved",
-                                                        value:
-                                                            stats.unsolvedCount ||
-                                                            0,
-                                                    },
-                                                ]}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={55}
-                                                outerRadius={70}
-                                                paddingAngle={4}
-                                                dataKey="value"
-                                            >
-                                                <Cell fill="#10b981" />
-                                                <Cell fill="#f43f5e" />
-                                            </Pie>
+                                        <BarChart
+                                            data={stats.deviceTypeStats}
+                                            margin={{
+                                                top: 10,
+                                                right: 10,
+                                                left: -20,
+                                                bottom: 0,
+                                            }}
+                                        >
+                                            <XAxis
+                                                dataKey="device_type"
+                                                stroke="#888888"
+                                                fontSize={10}
+                                                tickLine={false}
+                                                axisLine={false}
+                                            />
+                                            <YAxis
+                                                stroke="#888888"
+                                                fontSize={10}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                allowDecimals={false}
+                                            />
                                             <Tooltip
                                                 content={<CustomTooltip />}
                                             />
-                                        </PieChart>
+                                            <Bar
+                                                dataKey="count"
+                                                radius={[4, 4, 0, 0]}
+                                            >
+                                                {stats.deviceTypeStats.map(
+                                                    (_, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                COLORS[
+                                                                    index %
+                                                                        COLORS.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
+                                            </Bar>
+                                        </BarChart>
                                     </ResponsiveContainer>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                        <span className="text-xl font-black text-foreground">
-                                            {Math.round(
-                                                ((stats.solvedCount || 0) /
-                                                    (stats.delivered || 1)) *
-                                                    100
-                                            )}
-                                            %
-                                        </span>
-                                        <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-wider">
-                                            Solved Rate
-                                        </span>
+                                ) : (
+                                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground italic">
+                                        No device category data available
                                     </div>
-                                </div>
-                                <div className="flex flex-col gap-2.5 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                                        <span className="font-semibold text-foreground">
-                                            Solved Cases:{" "}
-                                            {stats.solvedCount || 0}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-3 w-3 rounded-full bg-rose-500" />
-                                        <span className="font-semibold text-foreground">
-                                            Unsolved Cases:{" "}
-                                            {stats.unsolvedCount || 0}
-                                        </span>
-                                    </div>
-                                    <div className="border-t border-border/60 pt-2 text-[10px]">
-                                        Total Delivered: {stats.delivered || 0}
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground italic">
-                                No delivered case history to calculate
-                                resolution rate
+                                )}
                             </div>
-                        )}
-                    </div>
-                </div>
-            </section>
+                        </div>
+
+                        {/* Case Resolution Performance */}
+                        <div className="bg-card/45 border border-border rounded-xl p-5 backdrop-blur-sm shadow-sm flex flex-col justify-between min-h-75">
+                            <div>
+                                <h3 className="font-bold text-sm text-foreground">
+                                    Case Resolution Performance
+                                </h3>
+                                <p className="text-[11px] text-muted-foreground mb-4">
+                                    Success rate of delivered service requests
+                                </p>
+                            </div>
+                            <div className="h-64 w-full flex flex-col sm:flex-row items-center justify-center gap-6">
+                                {loading ? (
+                                    <div className="h-full w-full bg-muted/30 animate-pulse rounded-lg flex items-center justify-center text-xs text-muted-foreground">
+                                        Loading resolution stats...
+                                    </div>
+                                ) : stats.delivered && stats.delivered > 0 ? (
+                                    <>
+                                        <div className="h-44 w-44 relative shrink-0">
+                                            <ResponsiveContainer
+                                                width="100%"
+                                                height="100%"
+                                            >
+                                                <PieChart>
+                                                    <Pie
+                                                        data={[
+                                                            {
+                                                                name: "Solved",
+                                                                value:
+                                                                    stats.solvedCount ||
+                                                                    0,
+                                                            },
+                                                            {
+                                                                name: "Unsolved",
+                                                                value:
+                                                                    stats.unsolvedCount ||
+                                                                    0,
+                                                            },
+                                                        ]}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={55}
+                                                        outerRadius={70}
+                                                        paddingAngle={4}
+                                                        dataKey="value"
+                                                    >
+                                                        <Cell fill="#10b981" />
+                                                        <Cell fill="#f43f5e" />
+                                                    </Pie>
+                                                    <Tooltip
+                                                        content={
+                                                            <CustomTooltip />
+                                                        }
+                                                    />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                <span className="text-xl font-black text-foreground">
+                                                    {Math.round(
+                                                        ((stats.solvedCount ||
+                                                            0) /
+                                                            (stats.delivered ||
+                                                                1)) *
+                                                            100
+                                                    )}
+                                                    %
+                                                </span>
+                                                <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-wider">
+                                                    Solved Rate
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-2.5 text-xs text-muted-foreground">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                                                <span className="font-semibold text-foreground">
+                                                    Solved Cases:{" "}
+                                                    {stats.solvedCount || 0}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full bg-rose-500" />
+                                                <span className="font-semibold text-foreground">
+                                                    Unsolved Cases:{" "}
+                                                    {stats.unsolvedCount || 0}
+                                                </span>
+                                            </div>
+                                            <div className="border-t border-border/60 pt-2 text-[10px]">
+                                                Total Delivered:{" "}
+                                                {stats.delivered || 0}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground italic">
+                                        No delivered case history to calculate
+                                        resolution rate
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                </motion.div>
+            </AnimatePresence>
 
             {/* Main Content Grid */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">

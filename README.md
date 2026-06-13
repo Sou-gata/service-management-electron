@@ -5,22 +5,23 @@
   <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/TypeScript.svg" width="90" height="90" alt="TypeScript Logo" style="margin: 0 10px;" />
   <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/SQLite.svg" width="90" height="90" alt="SQLite Logo" style="margin: 0 10px;" />
 
-  # ⚡ ServiceFlow Desktop ERP
+# ⚡ ServiceFlow Desktop ERP
 
-  ### *A High-Performance, Offline-First Desktop Application for Service & Repair Centers*
+### _A High-Performance, Offline-First Desktop Application for Service & Repair Centers_
 
-  ---
+---
 
-  [![Windows Platform](https://img.shields.io/badge/Platform-Windows-0078d7?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com)
-  [![Electron Version](https://img.shields.io/badge/Electron-v33.2.0-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
-  [![React Version](https://img.shields.io/badge/React-v19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![Windows Platform](https://img.shields.io/badge/Platform-Windows-0078d7?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com)
+[![Electron Version](https://img.shields.io/badge/Electron-v33.2.0-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![React Version](https://img.shields.io/badge/React-v19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
 
   <p align="center">
     <b>ServiceFlow</b> is a modern, enterprise-ready, desktop application engineered specifically for electronics repairing hubs, IT support desk operators, and service companies. Operating completely offline, it guarantees maximum operational speeds, bulletproof data privacy, and robust database management directly on-premise.
   </p>
 
-  ---
+---
+
 </div>
 
 ## 🌌 Key Highlights & Features
@@ -95,11 +96,11 @@ graph TD
     C -->|Reads/Writes| D[(Local SQLite Database)]
 ```
 
-* **Frontend Framework**: React v19, TypeScript, Vite (Next-gen bundling)
-* **Styling**: Tailwind CSS & custom CSS systems for elegant micro-interactions
-* **Backend Layer**: Express Server (written in modular TypeScript)
-* **Data Storage**: High-performance SQLite database (`node-sqlite3-wasm`)
-* **Reports Generator**: Express EJS HTML-to-Print layouts
+- **Frontend Framework**: React v19, TypeScript, Vite (Next-gen bundling)
+- **Styling**: Tailwind CSS & custom CSS systems for elegant micro-interactions
+- **Backend Layer**: Express Server (written in modular TypeScript)
+- **Data Storage**: High-performance SQLite database (`node-sqlite3-wasm`)
+- **Reports Generator**: Express EJS HTML-to-Print layouts
 
 ---
 
@@ -108,28 +109,31 @@ graph TD
 Follow these setup steps to launch ServiceFlow on your machine:
 
 ### 📋 Prerequisites
-* [Node.js](https://nodejs.org/) (LTS Version)
-* [npm](https://www.npmjs.com/)
+
+- [Node.js](https://nodejs.org/) (LTS Version)
+- [npm](https://www.npmjs.com/)
 
 ### 🔧 Step-by-Step Setup
 
 1. **Clone the Repository**
-   ```bash
-   git clone <your-repo-link>
-   cd service-management-electron
-   ```
+
+    ```bash
+    git clone https://github.com/Sou-gata/service-management-electron.git
+    cd service-management-electron
+    ```
 
 2. **Install Root & Backend Dependencies**
-   ```bash
-   npm install
-   ```
+
+    ```bash
+    npm install
+    ```
 
 3. **Install Frontend Client Dependencies**
-   ```bash
-   cd frontend
-   npm install
-   cd ..
-   ```
+    ```bash
+    cd frontend
+    npm install
+    cd ..
+    ```
 
 ### 🧑‍💻 Running in Development Mode
 
@@ -152,6 +156,7 @@ Produce a production-grade, standalone Windows executable installer (`.exe`) via
 ```bash
 npm run package
 ```
+
 > [!NOTE]
 > The compiled executable along with setup configurations will be placed under the `/release` directory.
 
