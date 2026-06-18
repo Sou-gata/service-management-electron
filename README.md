@@ -81,19 +81,50 @@
       </ul>
     </td>
   </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🌐 Dual-Mode Deployment</h3>
+      <ul>
+        <li><b>Web Version:</b> Runs as a single-port Node.js web application.</li>
+        <li><b>Electron Version:</b> Runs as a native offline-first desktop app.</li>
+        <li>Unified SQLite database backend with seamless portability.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🖨️ PDF Printing & Reports</h3>
+      <ul>
+        <li>Built-in layouts for intake, servicing, and delivery receipts.</li>
+        <li>Proper PDF generation, print termination, and layout previews.</li>
+        <li>Works seamlessly in both desktop windowing and standard web browsers.</li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ---
 
 ## 🛠️ Technology Stack & Architecture
 
-ServiceFlow leverages a robust decoupled architecture running inside a native Electron shell:
+ServiceFlow supports two deployment architectures:
+
+### 1. Desktop Mode (Electron Shell)
+The UI runs inside an Electron shell, communicating via Preload IPC. Electron spawns and hosts the local Express backend server.
 
 ```mermaid
 graph TD
     A[Electron Main Shell] -->|Preload IPC| B[Vite + React UI]
     A -->|Spawns / Hosts| C[Express TS Server]
     C -->|Reads/Writes| D[(Local SQLite Database)]
+```
+
+### 2. Web Mode (Single-port Node.js App)
+The React frontend is compiled to static files and served directly by the Express Node.js web server from a single unified port, making hosting straightforward on servers or local networks.
+
+```mermaid
+graph TD
+    A[Web Browser] -->|HTTP / API Requests| B[Express Web Server]
+    B -->|Serves Static Assets| C[Compiled React UI]
+    B -->|Reads/Writes| D[(Local SQLite Database)]
 ```
 
 - **Frontend Framework**: React v19, TypeScript, Vite (Next-gen bundling)
@@ -149,9 +180,42 @@ npm run electron:dev
 
 ---
 
-## 📦 Packaging & Compiling Installer
+## 🏗️ Building & Packaging Selector
 
-Produce a production-grade, standalone Windows executable installer (`.exe`) via `electron-builder`:
+We provide a custom interactive script to easily build either the Web or Electron target.
+
+### ⚡ Interactive Build Selector (Windows)
+Run the build script in the root directory:
+```bash
+build.bat
+```
+This script presents an interactive menu:
+1. **Web Version**: Compiles the frontend (Vite) and bundles the backend (Webpack) into the single-port distribution folder (`/dist`).
+2. **Electron Version**: Packages the application into a standalone Windows installer (`.exe`) in the `/release` directory.
+
+---
+
+## 🌐 Deploying the Web Version
+
+If you compiled the **Web Version** (using `build.bat` option 1 or manually compiling the assets), you can start the self-contained server:
+
+```bash
+# 1. Navigate to the compiled build directory
+cd dist
+
+# 2. Install production dependencies
+npm install
+
+# 3. Start the application
+npm start
+```
+By default, the server will start on port `5000`. Open your browser and navigate to `http://localhost:5000` to access the application.
+
+---
+
+## 📦 Packaging & Compiling Electron Installer
+
+To manually compile and package a production-grade, standalone Windows executable installer (`.exe`) via `electron-builder`:
 
 ```bash
 npm run package
