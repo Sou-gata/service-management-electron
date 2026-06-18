@@ -42,6 +42,31 @@ app.get("/api/health", (req: Request, res: Response) => {
     });
 });
 
+// Serve Static Frontend SPA if compiled/present
+const pathsToCheck = [
+    path.join(__dirname, "..", "frontend"),
+    path.join(process.cwd(), "frontend"),
+    path.join(process.cwd(), "dist", "frontend"),
+];
+let targetFrontend = "";
+for (const p of pathsToCheck) {
+    if (fs.existsSync(p) && fs.existsSync(path.join(p, "index.html"))) {
+        targetFrontend = p;
+        break;
+    }
+}
+
+if (targetFrontend) {
+    console.log(`[Server] Serving frontend static assets from: ${targetFrontend}`);
+    app.use(express.static(targetFrontend));
+    app.get("*", (req: Request, res: Response, next) => {
+        if (req.path.startsWith("/api/")) {
+            return next();
+        }
+        res.sendFile(path.join(targetFrontend, "index.html"));
+    });
+}
+
 app.use(globalErrorHandler);
 
 export default app;

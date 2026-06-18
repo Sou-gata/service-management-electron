@@ -23,6 +23,7 @@ import {
     Send,
     ChevronDown,
     KeyRound,
+    CheckCircle,
 } from "lucide-react";
 import {
     Dialog,
@@ -131,6 +132,11 @@ const HomeLayout = () => {
                     name: "In-Progress",
                     path: "/app/services/servicing",
                     icon: <Send className="h-4 w-4" />,
+                },
+                {
+                    name: "Completed List",
+                    path: "/app/services/completed",
+                    icon: <CheckCircle className="h-4 w-4" />,
                 },
                 {
                     name: "Delivered List",

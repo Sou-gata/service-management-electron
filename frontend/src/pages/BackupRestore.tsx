@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Navigate } from "react-router";
+import { Navigate, useNavigate } from "react-router";
 import {
     Database,
     Download,
@@ -9,16 +9,26 @@ import {
     File,
     X,
     ShieldAlert,
-    CheckCircle2
+    CheckCircle2,
+    Trash2
 } from "lucide-react";
 import apiService from "../utils/apiService";
 import toaster from "../utils/toaster";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "../components/ui/dialog";
 
 const BackupRestore: React.FC = () => {
     const userString = localStorage.getItem("user");
     const user = userString ? JSON.parse(userString) : null;
     const isAdmin = user?.role === "admin";
+
+    const navigate = useNavigate();
 
     // If not admin, block entry
     if (!isAdmin) {
@@ -30,6 +40,11 @@ const BackupRestore: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [confirmOverwrite, setConfirmOverwrite] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Database Reset states
+    const [isResetting, setIsResetting] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [adminPassword, setAdminPassword] = useState("");
 
     // Download Backup handler
     const handleDownloadBackup = async () => {
@@ -116,6 +131,40 @@ const BackupRestore: React.FC = () => {
         }
     };
 
+    // Reset Database handler
+    const handleResetDatabase = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!adminPassword) {
+            toaster("error", "Please enter your administrator password.");
+            return;
+        }
+
+        setIsResetting(true);
+        try {
+            console.log("[Reset] Requesting database reset...");
+            await apiService.post("/api/v1/database/reset", {
+                password: adminPassword,
+            });
+
+            toaster("success", "Database reset successfully! Logging out...");
+            
+            // Clear storage and navigate to login after a short delay
+            setTimeout(() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate("/login");
+            }, 2000);
+
+        } catch (error: any) {
+            console.error("Database reset failed:", error);
+            toaster(
+                "error",
+                error.response?.data?.message || "Failed to reset database."
+            );
+            setIsResetting(false);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
             {/* Page Header */}
@@ -131,7 +180,7 @@ const BackupRestore: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Backup Panel */}
                 <div className="bg-card border border-border shadow-md rounded-2xl overflow-hidden flex flex-col p-6 space-y-6">
                     <div className="flex items-center gap-3">
@@ -280,7 +329,101 @@ const BackupRestore: React.FC = () => {
                         </div>
                     </form>
                 </div>
+
+                {/* Reset Panel */}
+                <div className="bg-card border border-border shadow-md rounded-2xl overflow-hidden flex flex-col p-6 space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                            <Trash2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-foreground text-base">Reset Database</h3>
+                            <p className="text-xs text-muted-foreground">Rebuild system database from scratch</p>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                        This action will permanently delete the current active database and generate a fresh one matching the current schema. All service requests, custom device categories, accessories, settings, and user accounts will be permanently destroyed.
+                    </p>
+
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2 text-xs text-red-600 dark:text-red-400">
+                        <div className="flex items-start gap-2.5">
+                            <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+                            <div>
+                                <span className="font-bold uppercase tracking-wider block">Destructive Action</span>
+                                This cannot be undone. Default administrator user will be recreated with password <code className="bg-red-500/10 px-1 py-0.5 rounded font-mono">12345678</code>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex-1 flex items-end">
+                        <button
+                            type="button"
+                            onClick={() => setShowResetModal(true)}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold cursor-pointer transition-all border border-red-500 shadow-md shadow-red-500/10"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Reset System Database</span>
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            {/* Reset Confirmation Modal */}
+            <Dialog open={showResetModal} onOpenChange={(open) => {
+                setShowResetModal(open);
+                if (!open) setAdminPassword("");
+            }}>
+                <DialogContent className="max-w-md p-6 bg-card border border-border shadow-2xl rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            <span>Confirm Database Reset</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-muted-foreground mt-1">
+                            To complete this action, please verify your identity by entering your administrator password.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleResetDatabase} className="space-y-4 mt-2">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                Admin Password
+                            </label>
+                            <input
+                                type="password"
+                                value={adminPassword}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                                placeholder="Enter admin password"
+                                required
+                                className="w-full px-3 py-2 bg-accent/20 border border-border rounded-xl text-sm focus:outline-none focus:border-red-500 transition-colors"
+                            />
+                        </div>
+
+                        <div className="pt-2 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowResetModal(false);
+                                    setAdminPassword("");
+                                }}
+                                disabled={isResetting}
+                                className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isResetting || !adminPassword}
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-xl border border-red-500 shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-50 transition-all"
+                            >
+                                {isResetting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                <span>{isResetting ? "Resetting..." : "Confirm Reset"}</span>
+                            </button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

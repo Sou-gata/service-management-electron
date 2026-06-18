@@ -46,31 +46,37 @@ function startIpcPdfServer() {
                 let body = "";
                 req.on("data", (chunk) => (body += chunk.toString()));
                 req.on("end", async () => {
+                    let pdfWindow = null;
+                    let tempHtmlPath = "";
                     try {
                         const { htmlContent, filename } = JSON.parse(body);
-                        const pdfWindow = new BrowserWindow({
+
+                        const tempDir = app.getPath("temp");
+                        tempHtmlPath = path.join(tempDir, `print_temp_${Date.now()}.html`);
+                        fs.writeFileSync(tempHtmlPath, htmlContent, "utf-8");
+
+                        pdfWindow = new BrowserWindow({
                             show: false,
                             webPreferences: {
                                 nodeIntegration: false,
                                 contextIsolation: true,
                             },
                         });
-                        await pdfWindow.loadURL(
-                            `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
-                        );
-                        const pdfBuffer =
-                            await pdfWindow.webContents.printToPDF({
-                                pageSize: "A4",
-                                printBackground: true,
-                                margins: {
-                                    marginType: "custom",
-                                    top: 0.59,
-                                    bottom: 0.59,
-                                    left: 0.59,
-                                    right: 0.59,
-                                },
-                            });
-                        pdfWindow.close();
+
+                        const fileUrl = `file:///${tempHtmlPath.replace(/\\/g, "/")}`;
+                        await pdfWindow.loadURL(fileUrl);
+
+                        const pdfBuffer = await pdfWindow.webContents.printToPDF({
+                            pageSize: "A4",
+                            printBackground: true,
+                            margins: {
+                                marginType: "custom",
+                                top: 0.59,
+                                bottom: 0.59,
+                                left: 0.59,
+                                right: 0.59,
+                            },
+                        });
 
                         res.writeHead(200, {
                             "Content-Type": "application/pdf",
@@ -80,7 +86,18 @@ function startIpcPdfServer() {
                     } catch (err) {
                         console.error("[IPC PDF Server] Error:", err);
                         res.writeHead(500);
-                        res.end();
+                        res.end(JSON.stringify({ error: err.message }));
+                    } finally {
+                        if (pdfWindow) {
+                            try {
+                                pdfWindow.close();
+                            } catch (_) {}
+                        }
+                        if (tempHtmlPath && fs.existsSync(tempHtmlPath)) {
+                            try {
+                                fs.unlinkSync(tempHtmlPath);
+                            } catch (_) {}
+                        }
                     }
                 });
             } else {
@@ -243,6 +260,13 @@ function createWindow() {
 
     mainWindow.on("closed", () => {
         mainWindow = null;
+        if (serverProcess) {
+            try {
+                serverProcess.kill("SIGKILL");
+            } catch (e) {}
+        }
+        app.quit();
+        process.exit(0);
     });
 }
 
@@ -302,6 +326,37 @@ ipcMain.handle("open-external", (event, url) => {
     shell.openExternal(url);
 });
 
+ipcMain.handle("open-pdf-buffer", async (event, { base64Data, filename }) => {
+    try {
+        const tempDir = app.getPath("temp");
+        const uniqueFilename = `${Date.now()}_${filename}`;
+        const filePath = path.join(tempDir, uniqueFilename);
+
+        fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
+
+        // Create a new window with PDF plugins enabled to show the viewer natively in the app
+        const pdfWindow = new BrowserWindow({
+            width: 1000,
+            height: 800,
+            title: "Service Management - Print / View PDF",
+            autoHideMenuBar: true,
+            webPreferences: {
+                plugins: true,
+                contextIsolation: true,
+                webSecurity: false, // Allow loading local files
+            },
+        });
+
+        const fileUrl = `file:///${filePath.replace(/\\/g, "/")}`;
+        pdfWindow.loadURL(fileUrl);
+
+        return { success: true, filePath };
+    } catch (err) {
+        console.error("[IPC] open-pdf-buffer error:", err);
+        return { success: false, reason: err.message };
+    }
+});
+
 app.whenReady().then(async () => {
     try {
         console.log("[Main] App ready. Starting backend...");
@@ -321,7 +376,9 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
     if (serverProcess) {
-        serverProcess.kill();
+        try {
+            serverProcess.kill("SIGKILL");
+        } catch (e) {}
         serverProcess = null;
     }
     if (process.platform !== "darwin") {
@@ -337,6 +394,9 @@ app.on("activate", () => {
 
 app.on("before-quit", () => {
     if (serverProcess) {
-        serverProcess.kill();
+        try {
+            serverProcess.kill("SIGKILL");
+        } catch (e) {}
     }
+    process.exit(0);
 });

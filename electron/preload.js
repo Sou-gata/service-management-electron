@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Open URLs in the system browser
     openExternal: (url) => ipcRenderer.invoke("open-external", url),
 
+    // Save PDF buffer and open via system shell
+    openPdfBuffer: (base64Data, filename) =>
+        ipcRenderer.invoke("open-pdf-buffer", { base64Data, filename }),
+
     // Check if running inside Electron
     isElectron: true,
 });

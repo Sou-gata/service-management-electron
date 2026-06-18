@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { backupDatabase, restoreDatabase } from "../controller/database.controller.js";
+import { backupDatabase, restoreDatabase, resetDatabase } from "../controller/database.controller.js";
 import { verifyToken, isAdmin } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -33,5 +33,6 @@ router.use(isAdmin as any);
 
 router.get("/backup", backupDatabase);
 router.post("/restore", upload.single("backup"), restoreDatabase);
+router.post("/reset", resetDatabase);
 
 export default router;

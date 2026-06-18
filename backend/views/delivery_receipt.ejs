@@ -494,5 +494,15 @@
             <span>Ticket ID: #SR-<%= ticketId %></span>
         </div>
     </div>
+    <script>
+        // Auto-print fallback for non-Electron environment (browser web mode)
+        if (typeof window !== "undefined" && (!window.electronAPI || !window.electronAPI.isElectron)) {
+            window.onload = () => {
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            };
+        }
+    </script>
 </body>
 </html>

@@ -252,6 +252,7 @@ export const getServiceRequests = asyncHandler(
             "brand_model",
             "status",
             "created_at",
+            "dispatch_date",
         ];
         const verifiedSortBy = allowedSortFields.includes(sortBy)
             ? sortBy
@@ -294,7 +295,7 @@ export const getServiceRequests = asyncHandler(
 
         if (status.trim() !== "") {
             if (status === "active") {
-                const statusFilter = ` AND sr.status != 'Delivered' AND sr.status != 'Servicing'`;
+                const statusFilter = ` AND sr.status != 'Delivered' AND sr.status != 'Servicing' AND sr.status != 'Completed'`;
                 query += statusFilter;
                 countQuery += statusFilter;
             } else if (status === "servicing_all") {
@@ -332,7 +333,8 @@ export const getServiceRequests = asyncHandler(
             countParams.push(parseInt(companyId));
         }
 
-        query += ` ORDER BY sr.${verifiedSortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+        const orderPrefix = verifiedSortBy === "dispatch_date" ? "" : "sr.";
+        query += ` ORDER BY ${orderPrefix}${verifiedSortBy} ${sortOrder} LIMIT ? OFFSET ?`;
         queryParams.push(limit, offset);
 
         const [rows] = (await pool.query(query, queryParams)) as [any[], any];

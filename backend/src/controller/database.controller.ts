@@ -1,11 +1,11 @@
-import pool, { closeDb, getDbPath } from "../config/db.js";
+import pool, { closeDb, getDbPath, testConnection } from "../config/db.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiErrorResponse from "../utils/ApiErrorResponse.js";
 import type { Request, Response } from "express";
 import fs from "fs";
-import path from "path";
 import { Database } from "node-sqlite3-wasm";
+import bcrypt from "bcryptjs";
 
 /**
  * Download a backup copy of the SQLite database
@@ -52,19 +52,21 @@ export const restoreDatabase = asyncHandler(
             let backupDbInstance: Database | null = null;
             try {
                 backupDbInstance = new Database(tempFilePath);
-                
+
                 // Get active database schema (tables)
                 const [activeTables] = await pool.query(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
                 );
 
                 if (!activeTables || activeTables.length === 0) {
-                    throw new Error("Active database has no tables to compare against.");
+                    throw new Error(
+                        "Active database has no tables to compare against."
+                    );
                 }
 
                 for (const tableRow of activeTables) {
                     const tableName = tableRow.name;
-                    
+
                     // Check if table exists in backup
                     const backupTableCheck = backupDbInstance.get(
                         "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
@@ -72,16 +74,26 @@ export const restoreDatabase = asyncHandler(
                     ) as { name: string } | undefined;
 
                     if (!backupTableCheck) {
-                        throw new Error(`Table '${tableName}' is missing from the backup file.`);
+                        throw new Error(
+                            `Table '${tableName}' is missing from the backup file.`
+                        );
                     }
 
                     // Get columns of the table in active database
-                    const [activeColumns] = await pool.query(`PRAGMA table_info(${tableName})`);
-                    const activeColNames = new Set((activeColumns as { name: string }[]).map(c => c.name));
+                    const [activeColumns] = await pool.query(
+                        `PRAGMA table_info(${tableName})`
+                    );
+                    const activeColNames = new Set(
+                        (activeColumns as { name: string }[]).map((c) => c.name)
+                    );
 
                     // Get columns of the table in backup database
-                    const backupColumns = backupDbInstance.all(`PRAGMA table_info(${tableName})`) as { name: string }[];
-                    const backupColNames = new Set(backupColumns.map(c => c.name));
+                    const backupColumns = backupDbInstance.all(
+                        `PRAGMA table_info(${tableName})`
+                    ) as { name: string }[];
+                    const backupColNames = new Set(
+                        backupColumns.map((c) => c.name)
+                    );
 
                     // Check that all active columns exist in the backup table
                     for (const colName of activeColNames) {
@@ -93,7 +105,9 @@ export const restoreDatabase = asyncHandler(
                     }
                 }
             } catch (validationError: any) {
-                throw new Error(`Invalid backup file: ${validationError.message}`);
+                throw new Error(
+                    `Invalid backup file: ${validationError.message}`
+                );
             } finally {
                 if (backupDbInstance) {
                     try {
@@ -182,15 +196,111 @@ export const restoreDatabase = asyncHandler(
                 } catch (_) {}
             }
 
-            const status = error.message.startsWith("Invalid backup file") ? 400 : 500;
+            const status = error.message.startsWith("Invalid backup file")
+                ? 400
+                : 500;
             const errMsg = error.message.startsWith("Invalid backup file")
                 ? error.message
                 : `Database restore failed: ${error.message}`;
 
-            throw new ApiErrorResponse(
-                status,
+            throw new ApiErrorResponse(status, null, errMsg);
+        }
+    }
+);
+
+/**
+ * Reset database by deleting it and generating a new database from the current schema.
+ * Before deleting, verifies the logged-in user's password.
+ */
+export const resetDatabase = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { password } = req.body;
+        const customReq = req as any;
+
+        if (!password) {
+            throw new ApiErrorResponse(400, null, "Password is required");
+        }
+
+        if (!customReq.user) {
+            throw new ApiErrorResponse(401, null, "Unauthorized");
+        }
+
+        // 1. Verify the current user's password
+        const [users] = (await pool.query("SELECT * FROM users WHERE id = ?", [
+            customReq.user.id,
+        ])) as [any[], any];
+        if (users.length === 0) {
+            throw new ApiErrorResponse(404, null, "Current user not found");
+        }
+
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            throw new ApiErrorResponse(400, null, "Incorrect password");
+        }
+
+        // 2. Perform reset
+        const dbPath = getDbPath();
+        try {
+            console.log("[Reset] Closing active database connection...");
+            closeDb();
+
+            // Delete database file
+            if (fs.existsSync(dbPath)) {
+                console.log(`[Reset] Deleting database file at ${dbPath}`);
+                fs.unlinkSync(dbPath);
+            }
+
+            // Delete WAL and SHM files to prevent recovery conflicts/stale transactions
+            const walPath = `${dbPath}-wal`;
+            const shmPath = `${dbPath}-shm`;
+            if (fs.existsSync(walPath)) {
+                console.log(`[Reset] Removing WAL file at ${walPath}`);
+                try {
+                    fs.unlinkSync(walPath);
+                } catch (e: any) {
+                    console.error(
+                        `[Reset] Failed to delete WAL file: ${e.message}`
+                    );
+                }
+            }
+            if (fs.existsSync(shmPath)) {
+                console.log(`[Reset] Removing SHM file at ${shmPath}`);
+                try {
+                    fs.unlinkSync(shmPath);
+                } catch (e: any) {
+                    console.error(
+                        `[Reset] Failed to delete SHM file: ${e.message}`
+                    );
+                }
+            }
+
+            // 3. Initialize and seed the fresh database
+            console.log("[Reset] Re-initializing database schema...");
+            const initialized = await testConnection();
+            if (!initialized) {
+                throw new Error(
+                    "Failed to initialize database schema after reset"
+                );
+            }
+
+            console.log("[Reset] Database reset successfully completed.");
+            return new ApiResponse(
+                200,
                 null,
-                errMsg
+                "Database reset successfully. Schema regenerated and default administrator seeded."
+            ).send(res);
+        } catch (error: any) {
+            console.error("[Reset] Database reset failed:", error);
+            // Try to re-initialize in case the file was deleted but not initialized
+            try {
+                await testConnection();
+            } catch (_) {}
+
+            throw new ApiErrorResponse(
+                500,
+                null,
+                `Database reset failed: ${error.message}`
             );
         }
     }

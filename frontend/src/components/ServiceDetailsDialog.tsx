@@ -55,6 +55,8 @@ interface ServiceRequest {
     is_sent_for_servicing?: number | null;
     is_warranty?: number | boolean | null;
     delivery_date?: string | null;
+    estimated_cost?: number | string | null;
+    estimated_delivery_date?: string | null;
 }
 
 interface ServiceDetailsDialogProps {
@@ -150,6 +152,23 @@ export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
                             <button
                                 type="button"
                                 onClick={() => {
+                                    let actualCost: string | undefined = undefined;
+                                    if (activeRequest.status === "Delivered") {
+                                        const laborFee = parseFloat(
+                                            String((activeRequest as any).cost || 0)
+                                        );
+                                        let partsTotal = 0;
+                                        if (Array.isArray((activeRequest as any).new_parts)) {
+                                            (activeRequest as any).new_parts.forEach((p: any) => {
+                                                const c = parseFloat(p.cost);
+                                                if (!isNaN(c)) {
+                                                    partsTotal += c;
+                                                }
+                                            });
+                                        }
+                                        actualCost = (laborFee + partsTotal).toFixed(2);
+                                    }
+
                                     const msg = getStatusMessage(
                                         activeRequest.status,
                                         {
@@ -161,6 +180,10 @@ export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
                                             brandModel:
                                                 activeRequest.brand_model,
                                             status: activeRequest.status,
+                                            estimatedCost: activeRequest.estimated_cost && String(activeRequest.estimated_cost).trim() !== ""
+                                                ? parseFloat(String(activeRequest.estimated_cost)).toFixed(2)
+                                                : undefined,
+                                            actualCost,
                                         }
                                     );
                                     navigator.clipboard.writeText(msg);
@@ -288,6 +311,49 @@ export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
                                     </div>
                                 </div>
                             </div>
+
+                            {activeRequest.estimated_cost !== null &&
+                                activeRequest.estimated_cost !== undefined &&
+                                String(activeRequest.estimated_cost).trim() !== "" && (
+                                    <div className="flex items-start gap-2.5">
+                                        <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                                Estimated Cost
+                                            </p>
+                                            <p className="font-semibold text-foreground">
+                                                ₹{parseFloat(String(activeRequest.estimated_cost)).toFixed(2)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {activeRequest.estimated_delivery_date &&
+                                String(activeRequest.estimated_delivery_date).trim() !== "" && (
+                                    <div className="flex items-start gap-2.5">
+                                        <CalendarIcon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                                        <div>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                                Estimated Delivery Date
+                                            </p>
+                                            <p className="font-semibold text-foreground">
+                                                {new Date(
+                                                    activeRequest.estimated_delivery_date.endsWith("Z")
+                                                        ? activeRequest.estimated_delivery_date
+                                                        : activeRequest.estimated_delivery_date.replace(
+                                                              " ",
+                                                              "T"
+                                                          ) + "Z"
+                                                ).toLocaleDateString("en-US", {
+                                                    year: "numeric",
+                                                    month: "short",
+                                                    day: "numeric",
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
 
                             <div>
                                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">

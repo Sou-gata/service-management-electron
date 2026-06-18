@@ -79,6 +79,8 @@ interface ServiceRequest {
     courier_details?: string | null;
     is_solved?: number | boolean | null;
     is_sent_for_servicing?: number | null;
+    estimated_cost?: number | string | null;
+    estimated_delivery_date?: string | null;
 }
 
 const COMMON_ITEMS = [
@@ -101,11 +103,6 @@ const STATUS_OPTIONS = [
         value: "Completed",
         label: "Completed",
         color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400",
-    },
-    {
-        value: "Delivered",
-        label: "Delivered",
-        color: "bg-zinc-500/10 text-zinc-600 border-zinc-500/20 dark:bg-zinc-500/20 dark:text-zinc-400",
     },
 ];
 
@@ -206,6 +203,7 @@ const Services: React.FC = () => {
         requestId: number | null;
         previousStatus: string;
         cost: string;
+        estimatedCost: string | number | null;
         isSolved: boolean;
         returnedItems: string[];
         newParts: Array<{
@@ -220,6 +218,7 @@ const Services: React.FC = () => {
         requestId: null,
         previousStatus: "",
         cost: "",
+        estimatedCost: "" as string | number | null,
         isSolved: true,
         returnedItems: [],
         newParts: [],
@@ -676,7 +675,7 @@ const Services: React.FC = () => {
                 companyId: details.servicing_company_id
                     ? String(details.servicing_company_id)
                     : "",
-                challanNo: details.challan_no || "",
+                challanNo: details.challan_no || `CH-${String(reqId).padStart(6, "0")}`,
                 courierDetails: details.courier_details || "",
                 items: (details.items || []).map((item: any) => ({
                     id: item.id,
@@ -913,6 +912,7 @@ const Services: React.FC = () => {
                 requestId: activeRequest.id,
                 previousStatus: activeRequest.status,
                 cost: "",
+                estimatedCost: activeRequest.estimated_cost,
                 isSolved: true,
                 intakeItems: form.items,
                 returnedItems: form.items.map((item: any) => item.item_name),
@@ -973,6 +973,7 @@ const Services: React.FC = () => {
                     requestId: id,
                     previousStatus: previousStatus,
                     cost: "",
+                    estimatedCost: details.estimated_cost,
                     isSolved: true,
                     intakeItems: intakeItems,
                     returnedItems: intakeItems.map(
@@ -2978,6 +2979,7 @@ const Services: React.FC = () => {
                         requestId: activeRequest.id,
                         previousStatus: activeRequest.status,
                         cost: "",
+                        estimatedCost: activeRequest.estimated_cost,
                         isSolved:
                             activeRequest.is_solved === 1 ||
                             activeRequest.is_solved === true,
@@ -3186,8 +3188,23 @@ const Services: React.FC = () => {
                         {/* 1. Cost and Solved Status */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-muted-foreground uppercase">
-                                    Total Service Cost (₹)
+                                <label className="text-xs font-semibold text-muted-foreground uppercase flex justify-between">
+                                    <span>Total Service Cost (₹)</span>
+                                    {deliveryState.estimatedCost !== null &&
+                                        deliveryState.estimatedCost !==
+                                            undefined &&
+                                        String(
+                                            deliveryState.estimatedCost
+                                        ).trim() !== "" && (
+                                            <span className="text-indigo-600 dark:text-indigo-400 font-semibold normal-case">
+                                                Estimated Cost: ₹
+                                                {parseFloat(
+                                                    String(
+                                                        deliveryState.estimatedCost
+                                                    )
+                                                ).toFixed(2)}
+                                            </span>
+                                        )}
                                 </label>
                                 <input
                                     type="number"

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import apiService from "../utils/apiService";
 import toaster from "../utils/toaster";
-import ServicingTab from "../components/ServicingTab";
 import { ServiceDetailsDialog } from "../components/ServiceDetailsDialog";
 import { CompleteConfirmDialog } from "../components/CompleteConfirmDialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, Layers, Check } from "lucide-react";
+import PaginationTable from "../components/PaginationTable";
+import type { Column } from "../components/PaginationTable";
 
 interface ServiceItem {
     id?: number;
@@ -37,27 +38,35 @@ interface ServiceRequest {
     courier_details?: string | null;
     is_solved?: number | boolean | null;
     is_sent_for_servicing?: number | null;
+    estimated_cost?: number | string | null;
+    estimated_delivery_date?: string | null;
 }
 
 const Servicing: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [companies, setCompanies] = useState<any[]>([]);
-    const [data, setData] = useState<ServiceRequest[]>([]);
+    const [products, setProducts] = useState<ServiceRequest[]>([]);
     const [completeIsSolved, setCompleteIsSolved] = useState(true);
-    const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(
-        null
-    );
+    const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
 
     const [modals, setModals] = useState({
         details: false,
         completeConfirm: false,
-        delivery: false,
     });
 
     const [actionLoading, setActionLoading] = useState({
         submitting: false,
-        submittingDelivery: false,
         downloadingPdf: false,
+    });
+
+    // Pagination, search, and sorting state
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        rowsPerPage: 10,
+        sortBy: "created_at",
+        sortOrder: "desc" as "asc" | "desc",
+        search: "",
     });
 
     const setModalOpen = (modal: keyof typeof modals, open: boolean) => {
@@ -73,20 +82,26 @@ const Servicing: React.FC = () => {
         }
     };
 
-    const fetchRequests = async () => {
+    const fetchProducts = async () => {
         setLoading(true);
         try {
             const response = await apiService.get("/api/v1/service-requests", {
                 params: {
                     status: "servicing_all",
-                    page: 1,
-                    limit: 1000,
-                    sortBy: "created_at",
-                    sortOrder: "desc",
+                    servicingStatus: "Servicing",
+                    search: pagination.search,
+                    page: pagination.currentPage,
+                    limit: pagination.rowsPerPage,
+                    sortBy: pagination.sortBy,
+                    sortOrder: pagination.sortOrder,
                 },
             });
             const resData = response.data || response;
-            setData(resData.serviceRequests || []);
+            setProducts(resData.serviceRequests || []);
+            setPagination((prev) => ({
+                ...prev,
+                totalPages: resData.pagination?.totalPages || 1,
+            }));
         } catch (error: any) {
             console.error("Failed to load servicing registrations:", error);
             toaster("error", "Failed to load registrations.");
@@ -97,14 +112,21 @@ const Servicing: React.FC = () => {
 
     useEffect(() => {
         fetchConfigData();
-        fetchRequests();
     }, []);
+
+    useEffect(() => {
+        fetchProducts();
+    }, [
+        pagination.currentPage,
+        pagination.rowsPerPage,
+        pagination.sortBy,
+        pagination.sortOrder,
+        pagination.search,
+    ]);
 
     const fetchRequestDetails = async (id: number) => {
         try {
-            const response = await apiService.get(
-                `/api/v1/service-requests/${id}`
-            );
+            const response = await apiService.get(`/api/v1/service-requests/${id}`);
             return response.data || response;
         } catch (error: any) {
             console.error("Failed to fetch request details:", error);
@@ -123,6 +145,17 @@ const Servicing: React.FC = () => {
         }
     };
 
+    const handleOpenComplete = async (reqId: number) => {
+        setLoading(true);
+        const details = await fetchRequestDetails(reqId);
+        setLoading(false);
+        if (details) {
+            setActiveRequest(details);
+            setCompleteIsSolved(true);
+            setModalOpen("completeConfirm", true);
+        }
+    };
+
     const handleCompleteSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!activeRequest) return;
@@ -138,7 +171,7 @@ const Servicing: React.FC = () => {
             );
             toaster("success", "Service request successfully Completed!");
             setModalOpen("completeConfirm", false);
-            fetchRequests();
+            fetchProducts();
         } catch (error: any) {
             console.error("Failed to complete service request:", error);
             toaster(
@@ -206,12 +239,89 @@ const Servicing: React.FC = () => {
             },
         ];
         const match = STATUS_OPTIONS.find((opt) => opt.value === status);
-        return match ? match.color : "bg-zinc-500/10 text-zinc-600";
+        return match ? match.color : "bg-zinc-500/10 text-zinc-600 border-zinc-500/20";
     };
+
+    const columns: Column[] = [
+        {
+            key: "brand_model",
+            header: "Product / Model",
+            isShortable: true,
+            width: 180,
+        },
+        {
+            key: "estimated_cost_formatted",
+            header: "Estimated Cost",
+            width: 120,
+        },
+        { key: "company_name", header: "Company Name", width: 150 },
+        {
+            key: "customer_name",
+            header: "Customer Name",
+            isShortable: true,
+            width: 150,
+        },
+        { key: "status_badge", header: "Status", width: 120 },
+        {
+            key: "dispatch_date_formatted",
+            header: "Dispatch Date",
+            isShortable: true,
+            width: 120,
+        },
+        { key: "actions", header: "Actions", width: 80 },
+    ];
+
+    const tableData = products.map((sr) => {
+        const company = companies.find((c) => c.id === sr.servicing_company_id);
+        return {
+            ...sr,
+            company_name: company ? company.name : "N/A",
+            estimated_cost_formatted:
+                sr.estimated_cost !== null &&
+                sr.estimated_cost !== undefined &&
+                String(sr.estimated_cost).trim() !== ""
+                    ? `₹${parseFloat(String(sr.estimated_cost)).toFixed(2)}`
+                    : "N/A",
+            dispatch_date_formatted: sr.dispatch_date
+                ? new Date(sr.dispatch_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                  })
+                : "N/A",
+            status_badge: (
+                <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(sr.status)}`}
+                >
+                    {sr.status}
+                </span>
+            ),
+            actions: (
+                <div className="flex justify-center items-center gap-1.5">
+                    <button
+                        onClick={() => handleOpenDetails(sr.id)}
+                        className="p-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/10 cursor-pointer"
+                        title="View Details"
+                        type="button"
+                    >
+                        <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        onClick={() => handleOpenComplete(sr.id)}
+                        className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 cursor-pointer"
+                        title="Mark as Complete"
+                        type="button"
+                    >
+                        <Check className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            ),
+        };
+    });
 
     return (
         <div className="space-y-6">
-            <div className="relative bg-card/45 border border-border/80 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-xl">
+            <div className="relative">
                 {loading && (
                     <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center rounded-xl z-20">
                         <div className="flex flex-col items-center gap-2">
@@ -222,11 +332,62 @@ const Servicing: React.FC = () => {
                         </div>
                     </div>
                 )}
-                <ServicingTab
-                    companies={companies}
-                    data={data}
-                    handleOpenDetails={handleOpenDetails}
-                />
+
+                <div className="relative bg-card/45 border border-border/80 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-xl overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <div className="flex-1 max-w-sm relative">
+                            <input
+                                type="text"
+                                placeholder="Search products, customer, S/N..."
+                                value={pagination.search}
+                                onChange={(e) =>
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        search: e.target.value,
+                                        currentPage: 1,
+                                    }))
+                                }
+                                className="w-full bg-background border border-input rounded-lg py-2 px-3 text-sm text-foreground outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10 hover:border-border transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <PaginationTable
+                        columns={columns}
+                        data={tableData}
+                        currentPage={pagination.currentPage}
+                        totalPages={pagination.totalPages}
+                        rowsPerPage={pagination.rowsPerPage}
+                        onPageChange={(page) =>
+                            setPagination((prev) => ({
+                                ...prev,
+                                currentPage: page,
+                            }))
+                        }
+                        onRowsPerPageChange={(rows) =>
+                            setPagination((prev) => ({
+                                ...prev,
+                                rowsPerPage: rows,
+                                currentPage: 1,
+                            }))
+                        }
+                        onSort={(key, dir) => {
+                            setPagination((prev) => ({
+                                ...prev,
+                                sortBy: key === "dispatch_date_formatted" ? "dispatch_date" : key,
+                                sortOrder: dir,
+                            }));
+                        }}
+                        title={
+                            <div className="flex items-center gap-2">
+                                <Layers className="h-4 w-4 text-cyan-500" />
+                                <span className="font-bold text-foreground">
+                                    Active Servicing
+                                </span>
+                            </div>
+                        }
+                    />
+                </div>
             </div>
 
             {/* DETAILS VIEW / PHYSICAL RECEIPT MODAL */}

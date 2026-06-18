@@ -19,7 +19,6 @@
         "postinstall": "electron-builder install-app-deps"
     },
     "keywords": [],
-    "author": "",
     "license": "ISC",
     "dependencies": {
         "bcryptjs": "^3.0.3",
@@ -41,8 +40,11 @@
         "concurrently": "^9.1.0",
         "electron": "^33.2.0",
         "electron-builder": "^25.1.8",
+        "ts-loader": "^9.5.1",
         "tsx": "^4.19.2",
-        "typescript": "^5.6.3"
+        "typescript": "^5.6.3",
+        "webpack": "^5.91.0",
+        "webpack-cli": "^5.1.4"
     },
     "build": {
         "appId": "com.servicemanagement.app",

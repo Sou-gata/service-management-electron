@@ -224,16 +224,22 @@ class ApiService {
                 }
             }
 
-            const blob = new Blob([response.data], { type: "application/pdf" });
+            const contentType = response.headers["content-type"] || "";
+            const isHtml = contentType.includes("text/html");
+            const blobType = isHtml ? "text/html" : "application/pdf";
+            const blob = new Blob([response.data], { type: blobType });
             const blobUrl = URL.createObjectURL(blob);
 
             const printWindow = window.open(blobUrl, "_blank");
 
             if (printWindow) {
-                printWindow.onload = () => {
-                    printWindow.focus();
-                    printWindow.print();
-                };
+                printWindow.focus();
+                if (!isHtml) {
+                    printWindow.onload = () => {
+                        printWindow.focus();
+                        printWindow.print();
+                    };
+                }
             } else {
                 throw new Error(
                     "Popup blocked! Please allow popups for this site."
